@@ -124,8 +124,6 @@ public class LZ77 {
         }
     }
 
-    ;
-
     /**
      * Zakomprimuje vstupní řetězec algoritmem LZ77.
      *
@@ -169,7 +167,7 @@ public class LZ77 {
     public static String decompress(final List<LZ77Codeword> codewords) {
         // výstupní dekódovaný řetězec
 
-        final StringBuffer output = new StringBuffer();
+        final StringBuilder output = new StringBuilder();
 
         for (final LZ77Codeword codeword : codewords) {
             // do bufferu přidat prefix
