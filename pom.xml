@@ -13,7 +13,6 @@
         <module>lz77</module>
         <module>lz78</module>
         <module>lzw</module>
-        <module>servlet</module>
     </modules>
 
     <dependencyManagement>
