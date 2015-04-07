@@ -1,64 +1,32 @@
 /**
- * Kódové slovo kompresního algoritmu LZ77.
- *
- * @author Vojtěch Hordějčuk
+ * Single LZ-77 codeword.
+ * Immutable class.
  */
 public class LZ77Codeword {
-    /*
-     * pozice prefixu od konce search bufferu
-     */
-    private final int position;
-    /**
-     * délka prefixu
-     */
-    private final int length;
-    /**
-     * první znak, který nalezen nebyl
-     */
-    private final String terminal;
+    private final int i;
+    private final int j;
+    private final char x;
 
-    /**
-     * Vytvoří nové kódové slovo algoritmu LZ77.
-     *
-     * @param position pozice prefixu
-     * @param length délka prefixu
-     * @param terminal první nenalezený znak
-     */
-    public LZ77Codeword(final int position, final int length, final String terminal) {
-        this.position = position;
-        this.length = length;
-        this.terminal = terminal;
+    public LZ77Codeword(final int i, final int j, final char x) {
+        this.i = i;
+        this.j = j;
+        this.x = x;
     }
 
-    /**
-     * Vrátí pozici prefixu.
-     *
-     * @return pozice prefixu
-     */
-    public int getPosition() {
-        return this.position;
+    public int getI() {
+        return i;
     }
 
-    /**
-     * Vrátí délku prefixu.
-     *
-     * @return délka prefixu
-     */
-    public int getLength() {
-        return this.length;
+    public int getJ() {
+        return j;
     }
 
-    /**
-     * Vrátí první nenalezený znak.
-     *
-     * @return první nenalezený znak
-     */
-    public String getTerminal() {
-        return this.terminal;
+    public char getX() {
+        return x;
     }
 
     @Override
     public String toString() {
-        return String.format("(%d,%d,'%s')", this.position, this.length, this.terminal);
+        return String.format("(%d,%d,%s)", i, j, x == 0 ? "<eof>" : String.valueOf(x));
     }
 }
