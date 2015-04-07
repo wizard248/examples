@@ -45,11 +45,11 @@ public final class LZ77 {
                 // find prefix in the whole window
                 final int newPrefixIndex = buffer.indexOf(newPrefix);
                 // check we have found it
-                final boolean prefixFoundInWindow = newPrefixIndex != -1;
+                final boolean foundInWindow = newPrefixIndex != -1;
                 // check it starts in the back buffer
-                final boolean prefixStartsInBackBuffer = newPrefixIndex < backBuffer.length();
+                final boolean foundInBackBuffer = newPrefixIndex < backBuffer.length();
 
-                if (prefixFoundInWindow && prefixStartsInBackBuffer) {
+                if (foundInWindow && foundInBackBuffer) {
                     // replace the best found prefix with the new longer one
                     prefixIndex = backBuffer.length() - newPrefixIndex;
                     prefixLength = i;
@@ -107,16 +107,19 @@ public final class LZ77 {
         if (index >= 0 && index <= input.length - 1) {
             return input[index];
         }
+
         return 0;
     }
 
     private static String safeSubString(final char[] input, final int start, final int end) {
         final StringBuilder buffer = new StringBuilder();
+
         for (int i = start; i < end; i++) {
             if (i >= 0 && i <= input.length - 1) {
                 buffer.append(input[i]);
             }
         }
+
         return buffer.toString();
     }
 }
