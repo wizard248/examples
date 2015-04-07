@@ -69,7 +69,6 @@ public final class LZ77 {
         return result;
     }
 
-
     // DECODING
     // ========
 
