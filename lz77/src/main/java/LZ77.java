@@ -1,206 +1,123 @@
 import java.util.LinkedList;
 import java.util.List;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 /**
- * Kompresní algoritmus LZ77.
- *
- * @author Vojtěch Hordějčuk
+ * Utility class for encoding and decoding with LZ77 algorithm.
  */
-public class LZ77 {
-    /**
-     * Posuvné okénko.
-     *
-     * @author Vojtěch Hordějčuk
-     */
-    private static class Window {
-        /**
-         * levý index
-         */
-        private int left;
-        /**
-         * poslední index search bufferu
-         */
-        private int middle;
-        /**
-         * pravý index
-         */
-        private int right;
+public final class LZ77 {
+    private static final Logger log = LoggerFactory.getLogger(LZ77.class);
 
-        /**
-         * Vytvoří nové posuvné okénko.
-         *
-         * @param sizeBack velikost search bufferu
-         * @param sizeAhead velikost look-ahead bufferu
-         */
-        public Window(final int sizeBack, final int sizeAhead) {
-            assert (sizeBack > 0);
-            assert (sizeAhead > 0);
-            assert (sizeAhead <= sizeBack);
+    private LZ77() {
+        // utility class
+    }
 
-            this.left = -sizeBack;
-            this.middle = -1;
-            this.right = sizeAhead - 1;
-        }
+    // ENCODING
+    // ========
 
-        /**
-         * Ověří, zda lze posuvné okénko ještě posunout.
-         * (ekvivalentní s tím, zda je look-ahead buffer prázdný)
-         *
-         * @param input vstupní řetězec
-         * @return TRUE právě když lze posuvné okénko ještě posunout
-         */
-        public boolean canMove(final String input) {
-            return (this.middle + 1 < input.length());
-        }
+    public static List<LZ77Codeword> encode(final char[] input, final int backBufferSize, final int frontBufferSize) {
+        final List<LZ77Codeword> result = new LinkedList<>();
 
-        /**
-         * Posune posuvné okénko o zadaný počet znaků vpravo.
-         *
-         * @param delta počet znaků, o který se má okénko posunout
-         */
-        public void move(final int delta) {
-            assert (delta > 0);
+        int middle = 0;
+        int start = middle - backBufferSize;
+        int end = middle + frontBufferSize;
 
-            this.left += delta;
-            this.middle += delta;
-            this.right += delta;
-        }
+        while (middle < input.length) {
+            log.debug("Window (start,middle,end): ({},{},{})", start, middle, end);
 
-        /**
-         * Vyhledá nejdelší prefix look-ahead bufferu v search bufferu.
-         * Pro ten vrátí "nejkratší" kódové slovo.
-         *
-         * @param input vstupní řetězec
-         * @return kódové slovo
-         */
-        public LZ77Codeword getLongestPrefix(final String input) {
-            final List<LZ77Codeword> prefixes = new LinkedList<LZ77Codeword>();
+            // prepare necessary structures to perform lookup
+            final String backBuffer = safeSubString(input, start, middle);
+            final String frontBuffer = safeSubString(input, middle, end);
+            log.debug("Buffers: ({}|{})", backBuffer, frontBuffer);
+            final int maxPrefixLength = frontBuffer.length();
+            final String buffer = safeSubString(input, start, end);
 
-            for (int i = this.middle; i >= this.left; i--) {
-                // pozice v řetězci - search buffer
+            // initialize the encoded word
+            int prefixIndex = 0;
+            int prefixLength = 0;
+            char prefixFollow = safeSubChar(input, middle);
 
-                int j = i;
+            for (int i = 1; i <= maxPrefixLength; i++) {
+                // create prefix of length "i"
+                final String newPrefix = safeSubString(input, middle, middle + i);
+                // find prefix in the whole window
+                final int newPrefixIndex = buffer.indexOf(newPrefix);
+                // check we have found it
+                final boolean prefixFoundInWindow = newPrefixIndex != -1;
+                // check it starts in the back buffer
+                final boolean prefixStartsInBackBuffer = newPrefixIndex < backBuffer.length();
 
-                // pozice v řetězci - look ahead buffer
-
-                int k = this.middle + 1;
-
-                // délka nalezeného řetězce
-
-                int l = 0;
-
-                // dokud se prefixy shodují nebo nebylo dosaženo hranic řetězců, posun
-
-                while ((j >= 0) && (k >= 0) && (j < input.length()) && (k < input.length()) && (j <= this.right) && (k <= this.right) && (input.charAt(j) == input.charAt(k))) {
-                    j++;
-                    k++;
-                    l++;
-                }
-
-                if (l > 0) {
-                    // společný prefix byl nalezen
-
-                    prefixes.add(new LZ77Codeword(this.middle - i, l, LZ77.getSafeChar(input, k)));
+                if (prefixFoundInWindow && prefixStartsInBackBuffer) {
+                    // replace the best found prefix with the new longer one
+                    prefixIndex = backBuffer.length() - newPrefixIndex;
+                    prefixLength = i;
+                    prefixFollow = safeSubChar(input, middle + i);
                 }
             }
 
-            if (prefixes.isEmpty()) {
-                // nebyl nalezen žádný společný prefix
+            final int skip = prefixLength + 1;
+            start += skip;
+            middle += skip;
+            end += skip;
 
-                return new LZ77Codeword(0, 0, LZ77.getSafeChar(input, this.middle + 1));
-            } else {
-                // alespoň jeden společný prefix byl nalezen, vybrat ten nejdelší
-
-                LZ77Codeword best = null;
-
-                for (final LZ77Codeword temp : prefixes) {
-                    if ((best == null) || (temp.getLength() > best.getLength())) {
-                        best = temp;
-                    }
-                }
-
-                return best;
-            }
-        }
-    }
-
-    /**
-     * Zakomprimuje vstupní řetězec algoritmem LZ77.
-     *
-     * @param input vstupní řetězec
-     * @param sizeBack velikost search bufferu
-     * @param sizeAhead velikost look-ahead bufferu
-     * @return posloupnost kódových slov
-     */
-    public static List<LZ77Codeword> compress(final String input, final int sizeBack, final int sizeAhead) {
-        // posuvné okénko
-
-        final Window window = new Window(sizeBack, sizeAhead);
-
-        // výstupní posloupnost kódových slov
-
-        final List<LZ77Codeword> output = new LinkedList<LZ77Codeword>();
-
-        while (window.canMove(input)) {
-            // najít následující kódové slovo
-
-            final LZ77Codeword codeword = window.getLongestPrefix(input);
-
-            // přidat jej na výstup
-
-            output.add(codeword);
-
-            // posunout posuvné okénko
-
-            window.move(codeword.getLength() + 1);
+            log.info("New codeword: ({},{},{}) skip +{}", prefixIndex, prefixLength, prefixFollow, skip);
+            result.add(new LZ77Codeword(prefixIndex, prefixLength, prefixFollow));
         }
 
-        return output;
+        return result;
     }
 
-    /**
-     * Dekomprimuje posloupnost kódových slov algoritmu LZ77.
-     *
-     * @param codewords vstupní posloupnost kódových slov
-     * @return dekomprimovaný řetězec
-     */
-    public static String decompress(final List<LZ77Codeword> codewords) {
-        // výstupní dekódovaný řetězec
 
-        final StringBuilder output = new StringBuilder();
+    // DECODING
+    // ========
 
-        for (final LZ77Codeword codeword : codewords) {
-            // do bufferu přidat prefix
+    public static char[] decode(final List<LZ77Codeword> input) {
+        final StringBuilder buffer = new StringBuilder();
 
-            if (codeword.getPosition() != 0) {
-                for (int i = 0; i < codeword.getLength(); i++) {
-                    output.append(output.charAt(output.length() - codeword.getPosition()));
+        for (final LZ77Codeword word : input) {
+            final int numCharsToGoBack = word.getI();
+            final int numCharsToCopy = word.getJ();
+            final char characterToAppend = word.getX();
+
+            if (numCharsToCopy > 0) {
+                final int firstCopyIndex = buffer.length() - numCharsToGoBack;
+                log.debug("Copying {} char(s) from index {}.", numCharsToCopy, firstCopyIndex);
+
+                for (int i = 0; i < numCharsToCopy; i++) {
+                    final char charToCopy = buffer.charAt(firstCopyIndex + i);
+                    log.debug("Copying: `{}`", charToCopy);
+                    buffer.append(charToCopy);
                 }
             }
 
-            // do bufferu přidat znak po prefixu
-
-            output.append(codeword.getTerminal());
+            if (characterToAppend != 0) {
+                log.debug("Appending: `{}`", characterToAppend);
+                buffer.append(characterToAppend);
+            }
         }
 
-        // na výstup přidat celou dekomprimovanou posloupnost
-
-        return output.toString();
+        return buffer.toString().toCharArray();
     }
 
-    /**
-     * Vrátí znak na zadané pozici.
-     * Pokud je pozice mimo rozsah, vrátí prázdný řetězec ("").
-     *
-     * @param input vstupní řetězec
-     * @param index pozice (index)
-     * @return znak na zadané pozici vstupního řetězce, nebo prázdný řetězec
-     */
-    private static String getSafeChar(final String input, final int index) {
-        if ((index < 0) || (index >= input.length())) {
-            return "";
-        } else {
-            return input.substring(index, index + 1);
+    // UTILITY
+    // =======
+
+    private static char safeSubChar(final char[] input, final int index) {
+        if (index >= 0 && index <= input.length - 1) {
+            return input[index];
         }
+        return 0;
+    }
+
+    private static String safeSubString(final char[] input, final int start, final int end) {
+        final StringBuilder buffer = new StringBuilder();
+        for (int i = start; i < end; i++) {
+            if (i >= 0 && i <= input.length - 1) {
+                buffer.append(input[i]);
+            }
+        }
+        return buffer.toString();
     }
 }
