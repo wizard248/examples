@@ -1,43 +1,26 @@
 /**
- * Kódové slovo kompresního algoritmu LZ78.
- *
- * @author Vojtěch Hordějčuk
+ * Single LZ-77 codeword.
+ * Immutable class.
  */
 public class LZ78Codeword {
-    private final int index;
-    private final String terminal;
+    private final int i;
+    private final char x;
 
-    /**
-     * Vytvoří nové kódové slovo.
-     *
-     * @param index index uzlu
-     * @param terminal první nenalezený znak
-     */
-    public LZ78Codeword(final int index, final String terminal) {
-        this.index = index;
-        this.terminal = terminal;
+    public LZ78Codeword(final int i, final char x) {
+        this.i = i;
+        this.x = x;
     }
 
-    /**
-     * Vrátí index uzlu.
-     *
-     * @return index uzlu
-     */
-    public int getIndex() {
-        return this.index;
+    public int getI() {
+        return i;
     }
 
-    /**
-     * Vrátí nenalezený znak.
-     *
-     * @return nenalezený znak
-     */
-    public String getTerminal() {
-        return this.terminal;
+    public char getX() {
+        return x;
     }
 
     @Override
     public String toString() {
-        return String.format("(%d,'%s')", this.index, this.terminal);
+        return String.format("(%d,%s)", i, x == 0 ? "<eof>" : x);
     }
 }

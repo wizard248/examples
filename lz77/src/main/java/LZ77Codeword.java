@@ -27,6 +27,6 @@ public class LZ77Codeword {
 
     @Override
     public String toString() {
-        return String.format("(%d,%d,%s)", i, j, x == 0 ? "<eof>" : String.valueOf(x));
+        return String.format("(%d,%d,%s)", i, j, x == 0 ? "<eof>" : x);
     }
 }
