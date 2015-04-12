@@ -13,15 +13,15 @@ public class LZ77Test {
 
     @Test
     public void testAll() {
-        testEncoding("");
-        testEncoding("a");
-        testEncoding("aaaaaa");
-        testEncoding("abaabbabaacaacabb");
-        testEncoding("MAMA MELE MASO. MASO MELE MAMU.");
-        testEncoding("JELENOVI PIVO NELEJ");
-        testEncoding("JEDE JEDE POSTOVSKY PANACEK");
-        testEncoding("Žlutý pes úpěl ďábelské ódy.");
-        testEncoding(IntStream.range(0, 1000).mapToObj(String::valueOf).reduce((a, b) -> a + b).get());
+        testEncodingAndDecoding("");
+        testEncodingAndDecoding("a");
+        testEncodingAndDecoding("aaaaaa");
+        testEncodingAndDecoding("abaabbabaacaacabb");
+        testEncodingAndDecoding("MAMA MELE MASO. MASO MELE MAMU.");
+        testEncodingAndDecoding("JELENOVI PIVO NELEJ");
+        testEncodingAndDecoding("JEDE JEDE POSTOVSKY PANACEK");
+        testEncodingAndDecoding("Žlutý pes úpěl ďábelské ódy.");
+        testEncodingAndDecoding(IntStream.range(0, 1000).mapToObj(String::valueOf).reduce((a, b) -> a + b).get());
     }
 
     @Test
@@ -53,7 +53,7 @@ public class LZ77Test {
         assertEquals(expected, actual);
     }
 
-    private void testEncoding(final String original) {
+    private void testEncodingAndDecoding(final String original) {
         for (final int sizeBack : sizesBack) {
             for (final int sizeFront : sizesFront) {
                 final List<LZ77Codeword> encoded = LZ77.encode(original.toCharArray(), sizeBack, sizeFront);

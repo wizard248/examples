@@ -1,226 +1,155 @@
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 /**
- * Kompresní algoritmus LZ78.
- *
- * @author Vojtěch Hordějčuk
+ * Utility class for encoding and decoding with LZ77 algorithm.
  */
-public class LZ78 {
-    /**
-     * Uzel slovníku, představující jedno slovo.
-     *
-     * @author Vojtěch Hordějčuk
-     */
-    private static class Node {
-        /**
-         * počítadlo uzlů pro generování unikátního indexu
-         */
-        private static int counter = 0;
-        /**
-         * unikátní index uzlu
-         */
-        private final int index;
-        /**
-         * hrany k potomkům
-         */
-        private final Map<String, Node> edges;
+public final class LZ78 {
+    private static final Logger log = LoggerFactory.getLogger(LZ78.class);
 
-        /**
-         * Vytvoří nový uzel.
-         */
-        public Node() {
-            this.index = Node.counter;
-            this.edges = new HashMap<String, Node>();
-            Node.counter++;
-        }
-
-        /**
-         * Vrátí uzel ve kterém končí daný prefix, nebo NULL.
-         *
-         * @param prefix hledaný prefix
-         * @return uzel ve kterém končí daný prefix, nebo NULL
-         */
-        public Node find(final String prefix) {
-            if (prefix.length() < 1) {
-                // PREFIX končí zde
-
-                return this;
-            } else {
-                final Node next = this.edges.get(prefix.substring(0, 1));
-
-                if (next == null) {
-                    // PREFIX není ve slovníku kompletní
-
-                    return null;
-                } else {
-                    // vyhledat zbytek PREFIXu
-
-                    return next.find(prefix.substring(1));
-                }
-            }
-        }
-
-        /**
-         * Rozšíří uzel slovníku o nového potomka a spojí jej zadanou hranou.
-         *
-         * @param terminal symbol pro danou hranu
-         */
-        public void extend(final String terminal) {
-            this.edges.put(terminal, new Node());
-        }
-
-        /**
-         * Vrátí unikátní index daného uzlu.
-         *
-         * @return ID uzlu
-         */
-        public int getIndex() {
-            return this.index;
-        }
-
-        @Override
-        public String toString() {
-            return String.format("(%d, edges to %s)", this.index, this.edges.toString());
-        }
+    private LZ78() {
+        // utility class
     }
 
-    /**
-     * Zakomprimuje vstupní řetězec algoritmem LZ78.
-     *
-     * @param input vstupní řetězec
-     * @return výstupní posloupnost kódových slov
-     */
-    public static List<LZ78Codeword> compress(final String input) {
-        // kořen slovníku
+    // ENCODING
+    // ========
 
-        final Node root = new Node();
-
-        // výstupní posloupnost kódových slov
-
-        final List<LZ78Codeword> output = new LinkedList<LZ78Codeword>();
-
-        // pozice ve vstupním řetězci
-
+    public static List<LZ78Codeword> encode(final char[] input) {
+        final List<LZ78Codeword> result = new LinkedList<>();
         int position = 0;
+        final Tree tree = new Tree();
 
-        // komprimuj, dokud nedojdeš na konec vstupu
+        while (position <= input.length - 1) {
+            log.debug("Encoding from position: {}", position);
+            Node bestLeafSoFar = tree.root;
+            int longestPrefixSoFar = 0;
 
-        while (position < input.length()) {
-            // uzel s nejdelším nalezeným prefixem
+            // try to find prefixes with increasing length
+            for (int prefixEnd = position + 1; prefixEnd <= input.length; prefixEnd++) {
+                final String prefix = safeSubString(input, position, prefixEnd);
+                assert prefix.length() >= 1;
+                log.debug("Trying to find prefix in dictionary: {} (length = {})", prefix, prefix.length());
+                char prefixChar = prefix.charAt(longestPrefixSoFar);
 
-            Node leaf = root;
-
-            // délka nejdelšího nalezeného prefixu
-
-            int longest_prefix = 0;
-
-            // délka prefixu, který bude v dalším kroku vyzkoušen
-
-            int try_prefix_length = 1;
-
-            // nalézt prefix ve slovníku
-
-            while (position + try_prefix_length <= input.length()) {
-                // vygenerovat prefix
-
-                final String prefix = input.substring(position, position + try_prefix_length);
-
-                // nalézt uzel, ve kterém prefix končí
-
-                final Node temp = root.find(prefix);
-
-                if (temp == null) {
-                    // prefix nebyl nalezen, spokojíme se s tím co máme
-
-                    break;
+                if (bestLeafSoFar.hasChild(prefixChar)) {
+                    bestLeafSoFar = bestLeafSoFar.getChild(prefixChar);
+                    longestPrefixSoFar = prefix.length();
                 } else {
-                    // zapamatovat si uzel obsahující delší prefix
-
-                    leaf = temp;
-                    longest_prefix = try_prefix_length;
-
-                    // vyhledat ještě delší prefix
-
-                    try_prefix_length++;
+                    break;
                 }
             }
 
-            // posunout ukazatel vstupního řetězce
-
-            position += longest_prefix + 1;
-
-            // načíst první nenalezený znak
-
-            final String terminal = LZ78.getSafeChar(input, position - 1);
-
-            // přidat kódové slovo
-
-            output.add(new LZ78Codeword(leaf.getIndex(), terminal));
-
-            // rozšířit slovník
-
-            leaf.extend(terminal);
+            // we have the longest prefix
+            final char firstTerminalAfterPrefix = safeSubChar(input, position + longestPrefixSoFar);
+            log.debug("Longest prefix found: (length = {}, start = {})", longestPrefixSoFar, bestLeafSoFar.id);
+            log.debug("Extending node {} with {}.", bestLeafSoFar.id, firstTerminalAfterPrefix);
+            tree.extend(bestLeafSoFar, firstTerminalAfterPrefix);
+            final LZ78Codeword newCodeword = new LZ78Codeword(bestLeafSoFar.id, firstTerminalAfterPrefix);
+            log.debug("Adding codeword: {}", newCodeword);
+            result.add(newCodeword);
+            position += longestPrefixSoFar + 1;
         }
 
-        return output;
+        return result;
     }
 
-    /**
-     * Dekomprimuje posloupnost kódových slov algoritmu LZ77.
-     *
-     * @param codewords vstupní posloupnost kódových slov
-     * @return dekomprimovaný řetězec
-     */
-    public static String decompress(final List<LZ78Codeword> codewords) {
-        // tabulka slov
+    // DECODING
+    // ========
 
-        final List<String> table = new LinkedList<String>();
+    public static char[] decode(final List<LZ78Codeword> input) {
+        // table of words
+        final List<String> table = new LinkedList<>();
+        // output string buffer
+        final StringBuilder buffer = new StringBuilder();
 
-        // výstupní řetězec
+        for (final LZ78Codeword codeword : input) {
+            final String wordToAdd;
 
-        final StringBuilder output = new StringBuilder();
-
-        for (final LZ78Codeword codeword : codewords) {
-            final String current;
-
-            if (codeword.getIndex() == 0) {
-                // neexistující slovo (nový symbol)
-
-                current = codeword.getTerminal();
+            if (codeword.getI() == 0) {
+                // non-existing word (new symbol)
+                log.debug("Appending non-existing word: {}", codeword.getX());
+                wordToAdd = String.valueOf(codeword.getX());
             } else {
-                // existující slovo + terminál
+                final String wordFromTable = table.get(codeword.getI() - 1);
 
-                current = table.get(codeword.getIndex() - 1) + codeword.getTerminal();
+                if (codeword.getX() != 0) {
+                    // existing word + terminal
+                    log.debug("Appending existing word: {} + terminal `{}`", wordFromTable, codeword.getX());
+                    wordToAdd = wordFromTable + codeword.getX();
+                } else {
+                    // existing word only
+                    log.debug("Appending existing word: {}", wordFromTable);
+                    wordToAdd = wordFromTable;
+                }
             }
 
-            // vložit slovo na výstup
-
-            output.append(current);
-
-            // rozšířit tabulku slov
-
-            table.add(current);
+            // append the word to output
+            buffer.append(wordToAdd);
+            // extend the table of words
+            table.add(wordToAdd);
+            log.debug("Table of words extended: {}", wordToAdd);
         }
 
-        return output.toString();
+        return buffer.toString().toCharArray();
     }
 
-    /**
-     * Vrátí znak na zadané pozici.
-     * Pokud je pozice mimo rozsah, vrátí prázdný řetězec ("").
-     *
-     * @param input vstupní řetězec
-     * @param index pozice (index)
-     * @return znak na zadané pozici vstupního řetězce, nebo prázdný řetězec
-     */
-    private static String getSafeChar(final String input, final int index) {
-        if ((index < 0) || (index >= input.length())) {
-            return "";
-        } else {
-            return input.substring(index, index + 1);
+    // UTILITY
+    // =======
+
+    private static class Tree {
+        int counter = 0;
+        final Node root = new Node(counter++);
+
+        void extend(Node parent, char terminal) {
+            parent.addChild(counter++, terminal);
         }
+    }
+
+    private static class Node {
+        final int id;
+        final Map<Character, Node> children;
+
+        Node(final int id) {
+            this.id = id;
+            this.children = new LinkedHashMap<>();
+        }
+
+        void addChild(int newId, char newTerminal) {
+            assert !children.containsKey(newTerminal);
+            children.put(newTerminal, new Node(newId));
+        }
+
+        Node getChild(char terminal) {
+            return children.get(terminal);
+        }
+
+        boolean hasChild(char terminal) {
+            return children.containsKey(terminal);
+        }
+    }
+
+    private static char safeSubChar(final char[] input, final int index) {
+        if (index >= 0 && index <= input.length - 1) {
+            return input[index];
+        }
+
+        return 0;
+    }
+
+    private static String safeSubString(final char[] input, final int start, final int end) {
+        final StringBuilder buffer = new StringBuilder();
+
+        for (int i = start; i < end; i++) {
+            if (i >= 0 && i <= input.length - 1) {
+                buffer.append(input[i]);
+            }
+        }
+
+        return buffer.toString();
     }
 }
