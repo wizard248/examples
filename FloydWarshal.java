@@ -39,48 +39,47 @@ public class FloydWarshall {
         final List<NODE> nodes = input.getNodes();
         final Matrix<Integer, NODE> matrix = new Matrix<>(nodes.size());
 
-        for (int a = 0; a < matrix.size(); a++) {
-            for (int b = 0; b < matrix.size(); b++) {
-                final NODE aNode = nodes.get(a);
-                final NODE bNode = nodes.get(b);
+        for (int iX = 0; iX < matrix.size(); iX++) {
+            for (int iY = 0; iY < matrix.size(); iY++) {
+                final NODE aNode = nodes.get(iX);
+                final NODE bNode = nodes.get(iY);
 
-                if (a == b) {
-                    // same node
-                    matrix.set(a, b, 0, aNode);
+                if (iX == iY) {
+                    // the same node - distance is zero
+                    matrix.set(iX, iY, 0, aNode);
                 } else {
                     final Optional<Integer> distance = input.getDistance(aNode, bNode);
 
                     if (distance.isPresent()) {
-                        // has a distance
-                        matrix.set(a, b, distance.get(), aNode);
-                    }
-                }
-            }
-        }
-
-        //matrix.print();
-
-        for (int detour = 0; detour < matrix.size(); detour++) {
-            for (int a = 0; a < matrix.size(); a++) {
-                for (int b = 0; b < matrix.size(); b++) {
-                    final Optional<Integer> aToDetour = matrix.get(a, detour);
-                    final Optional<Integer> detourToB = matrix.get(detour, b);
-
-                    if (aToDetour.isPresent() && detourToB.isPresent()) {
-                        final int detourDistance = aToDetour.get() + detourToB.get();
-
-                        final Optional<Integer> currentDistance = matrix.get(a, b);
-
-                        if (!currentDistance.isPresent() || detourDistance < currentDistance.get()) {
-                            // the detour is better than what we have so far
-                            matrix.set(a, b, detourDistance, nodes.get(detour));
-                        }
+                        // edge is defined - define distance
+                        matrix.set(iX, iY, distance.get(), aNode);
                     }
                 }
             }
         }
 
         matrix.print();
+
+        for (int iDetour = 0; iDetour < matrix.size(); iDetour++) {
+            for (int iX = 0; iX < matrix.size(); iX++) {
+                for (int iY = 0; iY < matrix.size(); iY++) {
+                    final Optional<Integer> aToDetour = matrix.get(iX, iDetour);
+                    final Optional<Integer> detourToB = matrix.get(iDetour, iY);
+
+                    if (aToDetour.isPresent() && detourToB.isPresent()) {
+                        final int detourDistance = aToDetour.get() + detourToB.get();
+                        final Optional<Integer> currentDistance = matrix.get(iX, iY);
+
+                        if (!currentDistance.isPresent() || detourDistance < currentDistance.get()) {
+                            // the detour is better than what we have so far
+                            matrix.set(iX, iY, detourDistance, nodes.get(iDetour));
+                        }
+                    }
+                }
+            }
+        }
+
+        //matrix.print();
 
         return new Output<NODE>() {
             @Override
