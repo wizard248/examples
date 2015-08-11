@@ -41,45 +41,49 @@ public class FloydWarshall {
 
         for (int iX = 0; iX < matrix.size(); iX++) {
             for (int iY = 0; iY < matrix.size(); iY++) {
-                final NODE aNode = nodes.get(iX);
-                final NODE bNode = nodes.get(iY);
+                final NODE xNode = nodes.get(iX);
+                final NODE yNode = nodes.get(iY);
 
                 if (iX == iY) {
                     // the same node - distance is zero
-                    matrix.set(iX, iY, 0, aNode);
+                    matrix.setMinimumDistance(iX, iY, 0);
+                    matrix.setPredecessor(iX, iY, xNode);
                 } else {
-                    final Optional<Integer> distance = input.getDistance(aNode, bNode);
+                    final Optional<Integer> distance = input.getDistance(xNode, yNode);
 
                     if (distance.isPresent()) {
                         // edge is defined - define distance
-                        matrix.set(iX, iY, distance.get(), aNode);
-                    }
-                }
-            }
-        }
-
-        matrix.print();
-
-        for (int iDetour = 0; iDetour < matrix.size(); iDetour++) {
-            for (int iX = 0; iX < matrix.size(); iX++) {
-                for (int iY = 0; iY < matrix.size(); iY++) {
-                    final Optional<Integer> aToDetour = matrix.get(iX, iDetour);
-                    final Optional<Integer> detourToB = matrix.get(iDetour, iY);
-
-                    if (aToDetour.isPresent() && detourToB.isPresent()) {
-                        final int detourDistance = aToDetour.get() + detourToB.get();
-                        final Optional<Integer> currentDistance = matrix.get(iX, iY);
-
-                        if (!currentDistance.isPresent() || detourDistance < currentDistance.get()) {
-                            // the detour is better than what we have so far
-                            matrix.set(iX, iY, detourDistance, nodes.get(iDetour));
-                        }
+                        matrix.setMinimumDistance(iX, iY, distance.get());
+                        matrix.setPredecessor(iX, iY, xNode);
                     }
                 }
             }
         }
 
         //matrix.print();
+
+        for (int iDetour = 0; iDetour < matrix.size(); iDetour++) {
+            for (int iX = 0; iX < matrix.size(); iX++) {
+                for (int iY = 0; iY < matrix.size(); iY++) {
+                    final Optional<Integer> detourPart1 = matrix.get(iX, iDetour);
+                    final Optional<Integer> detourPart2 = matrix.get(iDetour, iY);
+
+                    if (detourPart1.isPresent() && detourPart2.isPresent()) {
+                        final int detourDistance = detourPart1.get() + detourPart2.get();
+                        final Optional<Integer> currentDistance = matrix.get(iX, iY);
+
+                        if (!currentDistance.isPresent() || detourDistance < currentDistance.get()) {
+                            // the detour is better than what we have so far
+                            final NODE detourNode = nodes.get(iDetour);
+                            matrix.setMinimumDistance(iX, iY, detourDistance);
+                            matrix.setPredecessor(iX, iY, detourNode);
+                        }
+                    }
+                }
+            }
+        }
+
+        matrix.print();
 
         return new Output<NODE>() {
             @Override
@@ -159,9 +163,13 @@ public class FloydWarshall {
             return Optional.ofNullable(parent.get(map(x, y)));
         }
 
-        public void set(final int x, final int y, final VALUE value, final PARENT parent) {
+        public void setMinimumDistance(final int x, final int y, final VALUE value) {
             matrix.set(map(x, y), value);
-            this.parent.set(map(x, y), parent);
+
+        }
+
+        public void setPredecessor(final int x, final int y, final PARENT value) {
+            parent.set(map(x, y), value);
         }
 
         private int map(final int x, final int y) {
@@ -171,7 +179,7 @@ public class FloydWarshall {
         public void print() {
             for (int i = 0; i < n; i++) {
                 for (int j = 0; j < n; j++) {
-                    System.out.print(get(i, j) + " ");
+                    System.out.print(getParent(i, j) + " ");
                 }
                 System.out.println();
             }
