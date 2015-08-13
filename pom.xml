@@ -10,9 +10,16 @@
     <packaging>pom</packaging>
 
     <modules>
+        <module>graph</module>
         <module>lz77</module>
         <module>lz78</module>
         <module>lzw</module>
+        <module>bfs</module>
+        <module>dfs</module>
+        <module>jarnik-prim</module>
+        <module>boruvka-kruskal</module>
+        <module>a-star</module>
+        <module>dijkstra</module>
         <module>floyd-warshall</module>
     </modules>
 
