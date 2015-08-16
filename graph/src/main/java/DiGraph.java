@@ -3,6 +3,7 @@ import com.google.common.collect.HashBasedTable;
 import com.google.common.collect.Table;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * Created by voho on 16.08.15.
@@ -33,6 +34,22 @@ public class DiGraph<NV, EV> {
     public Set<NV> getNeighbours(NV source) {
         Preconditions.checkArgument(nodes.contains(source));
         return Collections.unmodifiableSet(matrix.row(source).keySet());
+    }
+
+    public Set<NV> getAllNodes() {
+        return Collections.unmodifiableSet(nodes);
+    }
+
+    public Set<DiGraphEdge<NV, EV>> getAllEdges() {
+        return matrix
+                .cellSet()
+                .stream()
+                .map(cell -> new DiGraphEdge<>(
+                        cell.getRowKey(),
+                        cell.getColumnKey(),
+                        cell.getValue()
+                ))
+                .collect(Collectors.toSet());
     }
 
     public Optional<EV> getEdge(NV source, NV target) {

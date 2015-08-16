@@ -1,4 +1,5 @@
 import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * Created by voho on 16.08.15.
@@ -17,6 +18,18 @@ public class Graph<NV, EV> {
     public void addEdge(NV source, NV target, EV value) {
         adaptee.addEdge(source, target, value);
         adaptee.addEdge(target, source, value);
+    }
+
+    public Set<NV> getAllNodes() {
+        return adaptee.getAllNodes();
+    }
+
+    public Set<GraphEdge<NV, EV>> getAllEdges() {
+        return adaptee
+                .getAllEdges()
+                .stream()
+                .map(DiGraphEdge::toGraphEdge)
+                .collect(Collectors.toSet());
     }
 
     public Set<NV> getNeighbours(NV source) {
