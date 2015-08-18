@@ -14,17 +14,15 @@
         <module>lz77</module>
         <module>lz78</module>
         <module>lzw</module>
-        <module>bfs</module>
-        <module>dfs</module>
-        <module>jarnik-prim</module>
-        <module>boruvka-kruskal</module>
-        <module>a-star</module>
-        <module>dijkstra</module>
-        <module>floyd-warshall</module>
     </modules>
 
     <dependencyManagement>
         <dependencies>
+            <dependency>
+                <groupId>com.google.guava</groupId>
+                <artifactId>guava</artifactId>
+                <version>18.0</version>
+            </dependency>
             <dependency>
                 <groupId>junit</groupId>
                 <artifactId>junit</artifactId>
