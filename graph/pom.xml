@@ -15,7 +15,7 @@
 
     <dependencies>
         <dependency>
-            <groupId>cz.voho.grafo</groupId>
+            <groupId>com.github.voho</groupId>
             <artifactId>grafo</artifactId>
         </dependency>
         <dependency>

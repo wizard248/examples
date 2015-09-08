@@ -16,12 +16,19 @@
         <module>lzw</module>
     </modules>
 
+    <repositories>
+        <repository>
+            <id>jitpack.io</id>
+            <url>https://jitpack.io</url>
+        </repository>
+    </repositories>
+
     <dependencyManagement>
         <dependencies>
             <dependency>
-                <groupId>cz.voho.grafo</groupId>
+                <groupId>com.github.voho</groupId>
                 <artifactId>grafo</artifactId>
-                <version>1-SNAPSHOT</version>
+                <version>master</version>
             </dependency>
             <dependency>
                 <groupId>com.google.guava</groupId>
