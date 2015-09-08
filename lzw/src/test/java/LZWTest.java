@@ -1,12 +1,16 @@
-import static org.junit.Assert.assertEquals;
+import org.junit.Test;
 
 import java.util.List;
 
-import org.junit.Test;
+import static org.junit.Assert.assertEquals;
 
 public class LZWTest {
     @Test
     public void test() {
+        testEncoding("");
+        testEncoding("A");
+        testEncoding("AA");
+        testEncoding("ABC");
         testEncoding("MAMA MELE MASO. MASO MELE MAMU.");
         testEncoding("JELENOVI PIVO NELEJ");
         testEncoding("JEDE JEDE POSTOVSKY PANACEK");

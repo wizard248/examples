@@ -1,3 +1,6 @@
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -8,84 +11,8 @@ import java.util.Map;
  *
  * @author Vojtěch Hordějčuk
  */
-public class LZW {
-    /**
-     * Uzel slovníku, představující jedno slovo.
-     *
-     * @author Vojtěch Hordějčuk
-     */
-    private static class Node {
-        /**
-         * počítadlo uzlů pro generování unikátního indexu
-         */
-        private static int counter = 0;
-        /**
-         * unikátní index uzlu
-         */
-        private final int index;
-        /**
-         * hrany k potomkům
-         */
-        private final Map<String, Node> edges;
-
-        /**
-         * Vytvoří nový uzel.
-         */
-        public Node() {
-            this.index = Node.counter;
-            this.edges = new HashMap<String, Node>();
-            Node.counter++;
-        }
-
-        /**
-         * Vrátí uzel ve kterém končí daný prefix, nebo NULL.
-         *
-         * @param prefix hledaný prefix
-         * @return uzel ve kterém končí daný prefix, nebo NULL
-         */
-        public Node find(final String prefix) {
-            if (prefix.length() < 1) {
-                // PREFIX končí zde
-
-                return this;
-            } else {
-                final Node next = this.edges.get(prefix.substring(0, 1));
-
-                if (next == null) {
-                    // PREFIX není ve slovníku kompletní
-
-                    return null;
-                } else {
-                    // vyhledat zbytek PREFIXu
-
-                    return next.find(prefix.substring(1));
-                }
-            }
-        }
-
-        /**
-         * Rozšíří uzel slovníku o nového potomka a spojí jej zadanou hranou.
-         *
-         * @param terminal symbol pro danou hranu
-         */
-        public void extend(final String terminal) {
-            this.edges.put(terminal, new Node());
-        }
-
-        /**
-         * Vrátí unikátní index daného uzlu.
-         *
-         * @return ID uzlu
-         */
-        public int getIndex() {
-            return this.index;
-        }
-
-        @Override
-        public String toString() {
-            return String.format("(%d, edges to %s)", this.index, this.edges.toString());
-        }
-    }
+public final class LZW {
+    private static final Logger log = LoggerFactory.getLogger(LZW.class);
 
     /**
      * Získá abecedu (seznam symbolů) ze vstupního řetězce.
@@ -94,7 +21,7 @@ public class LZW {
      * @return abeceda vstupního řetězce
      */
     public static List<String> getAlphabet(final String input) {
-        final List<String> alphabet = new LinkedList<String>();
+        final List<String> alphabet = new LinkedList<>();
 
         for (int i = 0; i < input.length(); i++) {
             final String temp = input.substring(i, i + 1);
@@ -115,19 +42,21 @@ public class LZW {
      * @return výstupní posloupnost kódových slov
      */
     public static List<LZWCodeword> compress(final List<String> alphabet, final String input) {
+        int nodeCounter = 0;
+
         // kořen slovníku
 
-        final Node root = new Node();
+        final Node root = new Node(nodeCounter++);
 
         // rozšířit slovník o symboly abecedy
 
         for (final String temp : alphabet) {
-            root.extend(temp);
+            root.extend(temp, nodeCounter++);
         }
 
         // výstupní posloupnost kódových slov
 
-        final List<LZWCodeword> output = new LinkedList<LZWCodeword>();
+        final List<LZWCodeword> output = new LinkedList<>();
 
         // pozice ve vstupním řetězci
 
@@ -187,7 +116,7 @@ public class LZW {
             // rozšířir slovník
 
             if (fresh != null) {
-                best_node.extend(fresh);
+                best_node.extend(fresh, nodeCounter++);
             }
 
             // posunout ukazatel o délku nejdelšího nalezeného slova
@@ -208,7 +137,7 @@ public class LZW {
     public static String decompress(final List<String> alphabet, final List<LZWCodeword> codewords) {
         // tabulka slov
 
-        final List<String> table = new LinkedList<String>();
+        final List<String> table = new LinkedList<>();
 
         for (final String temp : alphabet) {
             table.add(temp);
@@ -216,29 +145,24 @@ public class LZW {
 
         // výstupní řetězec
 
-        final StringBuffer output = new StringBuffer();
+        final StringBuilder output = new StringBuilder();
 
         for (int i = 0; i < codewords.size(); i++) {
             // aktuální kódové slovo
 
-            LZWCodeword current = null;
-
-            // následující kódové slovo
-
-            LZWCodeword next = null;
-
-            current = codewords.get(i);
-
-            if (i + 1 < codewords.size()) {
-                next = codewords.get(i + 1);
-            }
+            final LZWCodeword current = codewords.get(i);
 
             // na výstup vložit řetězec
 
-            output.append(table.get(current.getIndex() - 1));
+            final String word = table.get(current.getIndex() - 1);
+            output.append(word);
 
-            if (next != null) {
-                table.add(table.get(current.getIndex() - 1) + table.get(next.getIndex() - 1).charAt(0));
+            // aktualizovat slovník (pokud ještě bude nějaké slovo následovat)
+
+            if (i + 1 < codewords.size()) {
+                final LZWCodeword next = codewords.get(i + 1);
+                final String nextWord = table.get(next.getIndex() - 1);
+                table.add(word + nextWord.charAt(0));
             }
         }
 
@@ -258,6 +182,80 @@ public class LZW {
             return "";
         } else {
             return input.substring(index, index + 1);
+        }
+    }
+
+    /**
+     * Uzel slovníku, představující jedno slovo.
+     *
+     * @author Vojtěch Hordějčuk
+     */
+    private static class Node {
+        /**
+         * unikátní index uzlu
+         */
+        private final int index;
+        /**
+         * hrany k potomkům
+         */
+        private final Map<String, Node> edges;
+
+        /**
+         * Vytvoří nový uzel.
+         */
+        public Node(final int counter) {
+            this.index = counter;
+            this.edges = new HashMap<>();
+        }
+
+        /**
+         * Vrátí uzel ve kterém končí daný prefix, nebo NULL.
+         *
+         * @param prefix hledaný prefix
+         * @return uzel ve kterém končí daný prefix, nebo NULL
+         */
+        public Node find(final String prefix) {
+            if (prefix.length() < 1) {
+                // PREFIX končí zde
+
+                return this;
+            } else {
+                final Node next = this.edges.get(prefix.substring(0, 1));
+
+                if (next == null) {
+                    // PREFIX není ve slovníku kompletní
+
+                    return null;
+                } else {
+                    // vyhledat zbytek PREFIXu
+
+                    return next.find(prefix.substring(1));
+                }
+            }
+        }
+
+        /**
+         * Rozšíří uzel slovníku o nového potomka a spojí jej zadanou hranou.
+         *
+         * @param terminal symbol pro danou hranu
+         * @param counter node counter value
+         */
+        public void extend(final String terminal, final int counter) {
+            this.edges.put(terminal, new Node(counter));
+        }
+
+        /**
+         * Vrátí unikátní index daného uzlu.
+         *
+         * @return ID uzlu
+         */
+        public int getIndex() {
+            return this.index;
+        }
+
+        @Override
+        public String toString() {
+            return String.format("(%d, edges to %s)", this.index, this.edges.toString());
         }
     }
 }

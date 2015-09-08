@@ -1,10 +1,10 @@
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * Utility class for encoding and decoding with LZ77 algorithm.
@@ -34,7 +34,7 @@ public final class LZ78 {
                 final String prefix = safeSubString(input, position, prefixEnd);
                 assert prefix.length() >= 1;
                 log.debug("Trying to find prefix in dictionary: {} (length = {})", prefix, prefix.length());
-                char prefixChar = prefix.charAt(longestPrefixSoFar);
+                final char prefixChar = prefix.charAt(longestPrefixSoFar);
 
                 if (bestLeafSoFar.hasChild(prefixChar)) {
                     bestLeafSoFar = bestLeafSoFar.getChild(prefixChar);
@@ -105,7 +105,7 @@ public final class LZ78 {
         int counter = 0;
         final Node root = new Node(counter++);
 
-        void extend(Node parent, char terminal) {
+        void extend(final Node parent, final char terminal) {
             parent.addChild(counter++, terminal);
         }
     }
@@ -119,16 +119,16 @@ public final class LZ78 {
             this.children = new LinkedHashMap<>();
         }
 
-        void addChild(int newId, char newTerminal) {
+        void addChild(final int newId, final char newTerminal) {
             assert !children.containsKey(newTerminal);
             children.put(newTerminal, new Node(newId));
         }
 
-        Node getChild(char terminal) {
+        Node getChild(final char terminal) {
             return children.get(terminal);
         }
 
-        boolean hasChild(char terminal) {
+        boolean hasChild(final char terminal) {
             return children.containsKey(terminal);
         }
     }

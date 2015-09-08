@@ -15,25 +15,25 @@ import static org.junit.Assert.assertTrue;
 public class WelshPowellTest {
     @Test
     public void testEmptyGraph() {
-        MutableUndirectedGraph<String, ?> g = Graph.createMutableUndirectedGraph();
+        final MutableUndirectedGraph<String, ?> g = Graph.createMutableUndirectedGraph();
 
-        Map<String, Integer> colors = WelshPowell.colorByWelshPowell(g);
+        final Map<String, Integer> colors = WelshPowell.colorByWelshPowell(g);
         assertTrue(colors.isEmpty());
     }
 
     @Test
     public void testSingleNodeGraph() {
-        MutableUndirectedGraph<String, ?> g = Graph.createMutableUndirectedGraph();
+        final MutableUndirectedGraph<String, ?> g = Graph.createMutableUndirectedGraph();
         g.addNode("a");
 
-        Map<String, Integer> colors = WelshPowell.colorByWelshPowell(g);
+        final Map<String, Integer> colors = WelshPowell.colorByWelshPowell(g);
         assertEquals(1, colors.size());
         assertEquals(0, (int) colors.get("a"));
     }
 
     @Test
     public void testRegularGraph() {
-        MutableUndirectedGraph<String, Object> g = Graph.createMutableUndirectedGraph();
+        final MutableUndirectedGraph<String, Object> g = Graph.createMutableUndirectedGraph();
         g.addNodes("a", "b", "c", "d", "e", "f", "g");
         g.addEdge(1, "a", "c");
         g.addEdge(2, "b", "c");
@@ -45,7 +45,7 @@ public class WelshPowellTest {
         g.addEdge(8, "e", "g");
         g.addEdge(9, "f", "g");
 
-        Map<String, Integer> colors = WelshPowell.colorByWelshPowell(g);
+        final Map<String, Integer> colors = WelshPowell.colorByWelshPowell(g);
         assertEquals(7, colors.size());
         assertEquals(3, colors.values().stream().distinct().count());
         assertEquals(0, (int) colors.get("c"));

@@ -15,7 +15,7 @@ public final class FloydWarshall {
      * @param graph original graph
      * @return output containing the shortest paths between any two of the graph nodes
      */
-    public static <N, E> FloydWarshallOutput calculate(final Graph<N, E, ?> graph, Function<E, Integer> edgeWeighted) {
+    public static <N, E> FloydWarshallOutput calculate(final Graph<N, E, ?> graph, final Function<E, Integer> edgeWeighted) {
         final List<N> nodes = new ArrayList<>(graph.nodes());
         final FloydWarshallMatrix<Integer, N> matrix = new FloydWarshallMatrix<>(nodes.size());
 
@@ -33,7 +33,7 @@ public final class FloydWarshall {
 
                     if (edges.size() == 1) {
                         // edge is defined - define distance
-                        E singleEdge = edges.iterator().next();
+                        final E singleEdge = edges.iterator().next();
                         final int distance = edgeWeighted.apply(singleEdge);
                         matrix.setMinimumDistance(iX, iY, distance);
                         matrix.setPredecessor(iX, iY, xNode);

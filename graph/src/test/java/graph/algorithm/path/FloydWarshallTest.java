@@ -13,36 +13,33 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 
 public class FloydWarshallTest {
-    private static void assertShortestPath(FloydWarshallOutput<String> output, String a, String b, int expDistance, List<String> expPath) {
+    private static void assertShortestPath(final FloydWarshallOutput<String> output, final String a, final String b, final int expDistance, final List<String> expPath) {
         assertEquals(Optional.of(expPath), output.getShortestPath(a, b));
         assertEquals(Optional.of(expDistance), output.getMinimalDistance(a, b));
     }
 
-    private static void assertNoPath(FloydWarshallOutput<String> output, String a, String b) {
+    private static void assertNoPath(final FloydWarshallOutput<String> output, final String a, final String b) {
         assertFalse(output.getShortestPath(a, b).isPresent());
         assertFalse(output.getMinimalDistance(a, b).isPresent());
     }
 
-    private static FloydWarshallOutput<String> calculate(String[] nodes, Object[][] data) {
+    private static FloydWarshallOutput<String> calculate(final String[] nodes, final Object[][] data) {
         final MutableGraph<String, Integer, ?> g = Graph.createMutableDirectedGraph();
         g.addNodes(nodes);
         int i = 0;
-        for (Object[] datum : data) {
+        for (final Object[] datum : data) {
             g.addEdge(i++, (String) datum[0], (String) datum[1]);
         }
-        final Function<Integer, Integer> w = new Function<Integer, Integer>() {
-            @Override
-            public Integer apply(Integer integer) {
-                Object[] row = data[integer];
-                return (Integer) row[2];
-            }
+        final Function<Integer, Integer> w = integer -> {
+            final Object[] row = data[integer];
+            return (Integer) row[2];
         };
         return FloydWarshall.calculate(g, w);
     }
 
     @Test
     public void testExample1() {
-        String[] nodes = {"1", "2", "3", "4"};
+        final String[] nodes = {"1", "2", "3", "4"};
 
         final FloydWarshallOutput<String> output = calculate(
                 nodes,

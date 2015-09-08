@@ -50,7 +50,7 @@ public final class JarnikPrim {
                 // merge the edge with the result
 
                 final E edgeToAdd = edgeToAddMaybe.get();
-                UnorderedPair<N> pair = originalGraph.incidence(edgeToAdd);
+                final UnorderedPair<N> pair = originalGraph.incidence(edgeToAdd);
                 final N eitherNode = pair.getEither();
                 final N anotherNode = pair.getAnother();
 
