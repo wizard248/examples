@@ -1,47 +1,43 @@
 package graph.algorithm.path;
 
+import cz.voho.grafo.Graph;
+import cz.voho.grafo.MutableGraph;
 import org.junit.Test;
 
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
+import java.util.function.Function;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 
 public class FloydWarshallTest {
     private static void assertShortestPath(FloydWarshallOutput<String> output, String a, String b, int expDistance, List<String> expPath) {
-        assertEquals(Optional.of(expDistance), output.getMinimalDistance(a, b));
         assertEquals(Optional.of(expPath), output.getShortestPath(a, b));
+        assertEquals(Optional.of(expDistance), output.getMinimalDistance(a, b));
     }
 
     private static void assertNoPath(FloydWarshallOutput<String> output, String a, String b) {
-        assertFalse(output.getMinimalDistance(a, b).isPresent());
         assertFalse(output.getShortestPath(a, b).isPresent());
+        assertFalse(output.getMinimalDistance(a, b).isPresent());
     }
 
     private static FloydWarshallOutput<String> calculate(String[] nodes, Object[][] data) {
-        return FloydWarshall.calculate(construct(nodes, data));
-    }
-
-    private static FloydWarshallInput<String> construct(String[] nodes, Object[][] data) {
-        return new FloydWarshallInput<String>() {
+        final MutableGraph<String, Integer, ?> g = Graph.createMutableDirectedGraph();
+        g.addNodes(nodes);
+        int i = 0;
+        for (Object[] datum : data) {
+            g.addEdge(i++, (String) datum[0], (String) datum[1]);
+        }
+        final Function<Integer, Integer> w = new Function<Integer, Integer>() {
             @Override
-            public List<String> getNodes() {
-                return Arrays.asList(nodes);
-            }
-
-            @Override
-            public Optional<Integer> getDistance(String a, String b) {
-                for (Object[] datum : data) {
-                    if (datum[0].equals(a) && datum[1].equals(b)) {
-                        return Optional.of((int) datum[2]);
-                    }
-                }
-
-                return Optional.empty();
+            public Integer apply(Integer integer) {
+                Object[] row = data[integer];
+                return (Integer) row[2];
             }
         };
+        return FloydWarshall.calculate(g, w);
     }
 
     @Test

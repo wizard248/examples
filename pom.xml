@@ -19,9 +19,19 @@
     <dependencyManagement>
         <dependencies>
             <dependency>
+                <groupId>cz.voho.grafo</groupId>
+                <artifactId>grafo</artifactId>
+                <version>1-SNAPSHOT</version>
+            </dependency>
+            <dependency>
                 <groupId>com.google.guava</groupId>
                 <artifactId>guava</artifactId>
                 <version>18.0</version>
+            </dependency>
+            <dependency>
+                <groupId>org.mockito</groupId>
+                <artifactId>mockito-all</artifactId>
+                <version>1.10.19</version>
             </dependency>
             <dependency>
                 <groupId>junit</groupId>

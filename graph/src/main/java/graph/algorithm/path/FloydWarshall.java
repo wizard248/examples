@@ -1,31 +1,44 @@
 package graph.algorithm.path;
 
-import java.util.Collections;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Optional;
+import cz.voho.grafo.Graph;
 
+import java.util.*;
+import java.util.function.Function;
+
+/**
+ * Implementation of Floyd-Warshall`s algorithm.
+ */
 public final class FloydWarshall {
-    public static <NODE> FloydWarshallOutput<NODE> calculate(final FloydWarshallInput<NODE> input) {
-        final List<NODE> nodes = input.getNodes();
-        final FloydWarshallMatrix<Integer, NODE> matrix = new FloydWarshallMatrix<>(nodes.size());
+    /**
+     * Finds all pair`s shortest paths.
+     *
+     * @param graph original graph
+     * @return output containing the shortest paths between any two of the graph nodes
+     */
+    public static <N, E> FloydWarshallOutput calculate(final Graph<N, E, ?> graph, Function<E, Integer> edgeWeighted) {
+        final List<N> nodes = new ArrayList<>(graph.nodes());
+        final FloydWarshallMatrix<Integer, N> matrix = new FloydWarshallMatrix<>(nodes.size());
 
         for (int iX = 0; iX < matrix.size(); iX++) {
             for (int iY = 0; iY < matrix.size(); iY++) {
-                final NODE xNode = nodes.get(iX);
-                final NODE yNode = nodes.get(iY);
+                final N xNode = nodes.get(iX);
+                final N yNode = nodes.get(iY);
 
                 if (iX == iY) {
                     // the same node - distance is zero
                     matrix.setMinimumDistance(iX, iY, 0);
                     matrix.setPredecessor(iX, iY, xNode);
                 } else {
-                    final Optional<Integer> distance = input.getDistance(xNode, yNode);
+                    final Set<E> edges = graph.edgesIncidentWithNodePair(xNode, yNode);
 
-                    if (distance.isPresent()) {
+                    if (edges.size() == 1) {
                         // edge is defined - define distance
-                        matrix.setMinimumDistance(iX, iY, distance.get());
+                        E singleEdge = edges.iterator().next();
+                        final int distance = edgeWeighted.apply(singleEdge);
+                        matrix.setMinimumDistance(iX, iY, distance);
                         matrix.setPredecessor(iX, iY, xNode);
+                    } else if (edges.size() > 1) {
+                        throw new IllegalArgumentException("Only one edge per node pair is allowed.");
                     }
                 }
             }
@@ -43,7 +56,7 @@ public final class FloydWarshall {
 
                         if (!currentDistance.isPresent() || detourDistance < currentDistance.get()) {
                             // the detour is better than what we have so far
-                            final NODE detourNode = nodes.get(iDetour);
+                            final N detourNode = nodes.get(iDetour);
                             matrix.setMinimumDistance(iX, iY, detourDistance);
                             matrix.setPredecessor(iX, iY, detourNode);
                         }
@@ -52,9 +65,9 @@ public final class FloydWarshall {
             }
         }
 
-        return new FloydWarshallOutput<NODE>() {
+        return new FloydWarshallOutput<N>() {
             @Override
-            public Optional<Integer> getMinimalDistance(final NODE a, final NODE b) {
+            public Optional<Integer> getMinimalDistance(final N a, final N b) {
                 final int iA = nodes.indexOf(a);
                 final int iB = nodes.indexOf(b);
 
@@ -67,7 +80,7 @@ public final class FloydWarshall {
             }
 
             @Override
-            public Optional<List<NODE>> getShortestPath(final NODE a, final NODE b) {
+            public Optional<List<N>> getShortestPath(final N a, final N b) {
                 final int iTarget = nodes.indexOf(a);
                 int iStart = nodes.indexOf(b);
 
@@ -76,7 +89,7 @@ public final class FloydWarshall {
                     return Optional.empty();
                 }
 
-                final List<NODE> result = new LinkedList<>();
+                final List<N> result = new LinkedList<>();
 
                 while (true) {
                     result.add(nodes.get(iStart));
@@ -88,7 +101,7 @@ public final class FloydWarshall {
                         return Optional.of(result);
                     }
 
-                    final Optional<NODE> parent = matrix.getParent(iTarget, iStart);
+                    final Optional<N> parent = matrix.getParent(iTarget, iStart);
 
                     if (parent.isPresent()) {
                         // advance to next node

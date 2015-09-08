@@ -5,3 +5,5 @@
 ...and various implementations just for fun...
 
 This is published under MIT license.
+
+You are invited [to my website](http://voho.cz)!

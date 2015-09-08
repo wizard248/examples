@@ -11,15 +11,14 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 /**
- * Test suite for Boruvka-Kruskal`s algorithm.
- * Legend: g = original graph, mst = minimum spanning tree
+ * Created by vojta on 18/08/15.
  */
-public class BoruvkaKruskalTest {
+public class JarnikPrimTest {
     @Test
     public void testEmpty() {
         final MutableUndirectedGraph<String, Wedge> g = Graph.createMutableUndirectedGraph();
 
-        final UndirectedGraph<String, Wedge> mst = BoruvkaKruskal.compute(g);
+        final UndirectedGraph<String, Wedge> mst = JarnikPrim.compute(g);
         assertEquals(0, mst.nodes().size());
         assertEquals(0, mst.edges().size());
     }
@@ -29,7 +28,7 @@ public class BoruvkaKruskalTest {
         final MutableUndirectedGraph<String, Wedge> g = Graph.createMutableUndirectedGraph();
         g.addNode("a");
 
-        final UndirectedGraph<String, Wedge> mst = BoruvkaKruskal.compute(g);
+        final UndirectedGraph<String, Wedge> mst = JarnikPrim.compute(g);
         assertEquals(1, mst.nodes().size());
         assertEquals(0, mst.edges().size());
     }
@@ -41,7 +40,7 @@ public class BoruvkaKruskalTest {
         g.addNode("b");
         g.addEdge(new Wedge(10), "a", "b");
 
-        final UndirectedGraph<String, Wedge> mst = BoruvkaKruskal.compute(g);
+        final UndirectedGraph<String, Wedge> mst = JarnikPrim.compute(g);
         assertEquals(2, mst.nodes().size());
         assertEquals(1, mst.edges().size());
         assertTrue(mst.isDirectlyReachable("a", "b"));
@@ -60,7 +59,7 @@ public class BoruvkaKruskalTest {
         g.addEdge(new Wedge(9), "d", "f");
         g.addEdge(new Wedge(1), "d", "e");
 
-        final UndirectedGraph<String, Wedge> mst = BoruvkaKruskal.compute(g);
+        final UndirectedGraph<String, Wedge> mst = JarnikPrim.compute(g);
         assertEquals(6, mst.nodes().size());
         assertEquals(5, mst.edges().size());
         assertTrue(mst.isDirectlyReachable("a", "b"));
@@ -87,7 +86,7 @@ public class BoruvkaKruskalTest {
         g.addEdge(new Wedge(11), "f", "g");
         g.addEdge(new Wedge(9), "g", "e");
 
-        final UndirectedGraph<String, Wedge> mst = BoruvkaKruskal.compute(g);
+        final UndirectedGraph<String, Wedge> mst = JarnikPrim.compute(g);
         assertEquals(7, mst.nodes().size());
         assertEquals(6, mst.edges().size());
         assertTrue(mst.isDirectlyReachable("f", "d"));
@@ -98,5 +97,4 @@ public class BoruvkaKruskalTest {
         assertTrue(mst.isDirectlyReachable("e", "g"));
         assertEquals(39, mst.edges().stream().mapToInt(Wedge::getEdgeWeight).sum());
     }
-
 }
