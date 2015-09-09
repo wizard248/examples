@@ -1,8 +1,8 @@
-import java.util.LinkedList;
-import java.util.List;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.util.LinkedList;
+import java.util.List;
 
 /**
  * Utility class for encoding and decoding with LZ77 algorithm.
@@ -62,7 +62,7 @@ public final class LZ77 {
             middle += skip;
             end += skip;
 
-            log.info("New codeword: ({},{},{}) skip +{}", prefixIndex, prefixLength, prefixFollow, skip);
+            log.debug("New codeword: ({},{},{}) skip +{}", prefixIndex, prefixLength, prefixFollow, skip);
             result.add(new LZ77Codeword(prefixIndex, prefixLength, prefixFollow));
         }
 
