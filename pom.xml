@@ -10,6 +10,7 @@
     <packaging>pom</packaging>
 
     <modules>
+        <module>bitarray</module>
         <module>graph</module>
         <module>hash</module>
         <module>lz77</module>
