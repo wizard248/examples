@@ -12,20 +12,10 @@ public class BloomFilterTest {
 
     @Before
     public void before() {
-        filter = new SimpleBloomFilter<>(
-                10,
-                new Function<String, Integer>() {
-                    @Override
-                    public Integer apply(String s) {
-                        return s.toLowerCase().hashCode();
-                    }
-                },
-                new Function<String, Integer>() {
-                    @Override
-                    public Integer apply(String s) {
-                        return s.toUpperCase().hashCode();
-                    }
-                });
+        final Function<String, Integer> hash1 = s -> s.toLowerCase().hashCode();
+        final Function<String, Integer> hash2 = s -> s.toUpperCase().hashCode();
+
+        filter = new SimpleBloomFilter<>(10, hash1, hash2);
     }
 
     @Test
