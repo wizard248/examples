@@ -19,12 +19,14 @@ public class DefaultBitArray implements BitArray {
     }
 
     private static int getNumberOfBuckets(final int sizeInBits) {
-        // this is a "ceil" operation shortened
+        // this is a "ceil" operation simplified
         return (sizeInBits + BITS_PER_BUCKET - 1) / BITS_PER_BUCKET;
     }
 
-    private static long getFlag(final int index) {
-        return FIRST_BIT >>> (index % BITS_PER_BUCKET);
+    private static long getMask(final int indexOfOne) {
+        // e.g. for index = 3 it returns
+        // 0010(...)0
+        return FIRST_BIT >>> (indexOfOne % BITS_PER_BUCKET);
     }
 
     @Override
@@ -36,15 +38,15 @@ public class DefaultBitArray implements BitArray {
     public boolean get(final int index) {
         checkValidIndex(index);
         final int bucketIndex = index / BITS_PER_BUCKET;
-        final long flag = getFlag(index);
-        return (bitBuckets[bucketIndex] & flag) != 0;
+        final long mask = getMask(index);
+        return (bitBuckets[bucketIndex] & mask) != 0;
     }
 
     @Override
     public void set(final int index) {
         checkValidIndex(index);
         final int bucketIndex = index / BITS_PER_BUCKET;
-        final long flag = getFlag(index);
+        final long flag = getMask(index);
         bitBuckets[bucketIndex] |= flag;
     }
 
@@ -52,7 +54,7 @@ public class DefaultBitArray implements BitArray {
     public void unset(final int index) {
         checkValidIndex(index);
         final int bucketIndex = index / BITS_PER_BUCKET;
-        final long flag = ~(getFlag(index));
+        final long flag = ~(getMask(index));
         bitBuckets[bucketIndex] &= flag;
     }
 
@@ -72,7 +74,10 @@ public class DefaultBitArray implements BitArray {
 
     @Override
     public String toString() {
-        return IntStream.range(0, sizeInBits).mapToObj(i -> get(i) ? "1" : "0").collect(Collectors.joining());
+        return IntStream
+                .range(0, sizeInBits)
+                .mapToObj(i -> get(i) ? "1" : "0")
+                .collect(Collectors.joining());
     }
 
     private void checkValidIndex(final int index) {
