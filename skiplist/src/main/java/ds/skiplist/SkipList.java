@@ -15,6 +15,16 @@ public interface SkipList<K extends Comparable<? super K>, V> {
     Optional<V> get(K key);
 
     /**
+     * Checks if there is a mapping for the specified key.
+     *
+     * @param key key to search for
+     * @return TRUE if there is a mapping for that key, FALSE otherwise
+     */
+    default boolean contains(final K key) {
+        return get(key).isPresent();
+    }
+
+    /**
      * Saves a value under the given key.
      * Could a value already exists for the given key, it would be overwritten.
      *

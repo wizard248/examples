@@ -7,40 +7,24 @@ import java.lang.reflect.Array;
 import java.util.Optional;
 
 /**
- * Created by vojta on 15/09/15.
+ * Skip list implementation according to the original article.
  */
 public class DefaultSkipList<K extends Comparable<? super K>, V> implements SkipList<K, V> {
+    private static final double P_LEVEL_SKIP = 0.5;
     private static final Logger log = LoggerFactory.getLogger(DefaultSkipList.class);
-
-    private Element onlyHeader;
-    private Element header;
-    private int numberOfLevels;
+    private final Element header;
+    private final int maxNumberOfLevels;
     private int topLevel;
 
-    public DefaultSkipList(int numberOfLevels) {
-        this.numberOfLevels = numberOfLevels;
+    public DefaultSkipList(final int maxNumberOfLevels) {
+        this.maxNumberOfLevels = maxNumberOfLevels;
         this.topLevel = 0;
-        onlyHeader = new Header(null, null);
-        this.header = onlyHeader;
+        this.header = new Header();
     }
 
     @Override
-    public Optional<V> get(K key) {
-        // start at head
-
-        Element x = header;
-
-        for (int i = topLevel; i >= 0; i--) {
-            // move forward through level as long as the keys are lower
-
-            while (x.hasForward(i) && x.getForward(i).hasLowerKey(key)) {
-                x = x.getForward(i);
-            }
-        }
-
-        // we need to check the lowest level
-
-        x = x.getForward(0);
+    public Optional<V> get(final K key) {
+        final Element x = lookup(key, null);
 
         if (x != null && x.hasKey(key)) {
             return Optional.of(x.getValue());
@@ -50,72 +34,41 @@ public class DefaultSkipList<K extends Comparable<? super K>, V> implements Skip
     }
 
     @Override
-    public void insert(K key, V value) {
-        // start at head
-
-        Element[] update = (Element[]) Array.newInstance(Element.class, numberOfLevels);
-        Element x = header;
-
-        for (int i = topLevel; i >= 0; i--) {
-            // move forward through level as long as the keys are lower
-
-            while (x.hasForward(i) && x.getForward(i).hasLowerKey(key)) {
-                x = x.getForward(i);
-            }
-
-            // store closest element on each level
-
-            update[i] = x;
-        }
-
-        // we need to check the lowest level
-
-        x = x.getForward(0);
+    public void insert(final K key, final V value) {
+        final Element[] update = createElementArrayAllLevels();
+        final Element x = lookup(key, update);
 
         if (x != null && x.hasKey(key)) {
+            log.debug("Overriding value: {}", x);
             x.setValue(value);
         } else {
-            int lvl = getRandomLevel();
-            System.out.println("put " + key + " at " + lvl);
+            final int randomItemLevel = getRandomLevel();
 
-            if (lvl > topLevel) {
-                for (int i = topLevel + 1; i <= lvl; i++) {
+            if (randomItemLevel > topLevel) {
+                // must extend the list level
+
+                for (int i = topLevel + 1; i <= randomItemLevel; i++) {
                     update[i] = header;
                 }
-                topLevel = lvl;
+
+                log.debug("Extending list level from {} to {}.", topLevel, randomItemLevel);
+                topLevel = randomItemLevel;
             }
 
-            Element n = new Element(key, value);
+            final Element newElement = new Element(key, value);
 
-            for (int i = 0; i <= lvl; i++) {
-                n.setForward(i, update[i].getForward(i));
-                update[i].setForward(i, n);
+            for (int i = 0; i <= randomItemLevel; i++) {
+                newElement.setForward(i, update[i].getForward(i));
+                update[i].setForward(i, newElement);
+                log.debug("Inserted new element {} after {}.", newElement, update[i]);
             }
         }
     }
 
     @Override
-    public boolean delete(K key) {
-        // start at head
-
-        Element[] update = (Element[]) Array.newInstance(Element.class, numberOfLevels);
-        Element x = header;
-
-        for (int i = topLevel; i >= 0; i--) {
-            // move forward through level as long as the keys are lower
-
-            while (x.hasForward(i) && x.getForward(i).hasLowerKey(key)) {
-                x = x.getForward(i);
-            }
-
-            // store closest element on each level
-
-            update[i] = x;
-        }
-
-        // we need to check the lowest level
-
-        x = x.getForward(0);
+    public boolean delete(final K key) {
+        final Element[] update = createElementArrayAllLevels();
+        final Element x = lookup(key, update);
 
         if (x != null && x.hasKey(key)) {
             // present - delete node by joining the list
@@ -133,18 +86,22 @@ public class DefaultSkipList<K extends Comparable<? super K>, V> implements Skip
             // lower the list level if necessary
 
             while (topLevel > 0 && header.getForward(topLevel) == null) {
+                log.debug("Lowering list level from {} to one less.", topLevel);
                 topLevel--;
             }
 
+            log.debug("Removed key [{}].", key);
             return true;
         } else {
             // not present - deletion not necessary
 
+            log.debug("Not deleting - the key [{}] is not present.", key);
             return false;
         }
     }
 
-    private Element lookup(K key, Element[] updateTargetOrNull) {
+    private Element lookup(final K key, final Element[] updateTargetOrNull) {
+        log.debug("Looking up key [{}]...", key);
         Element x = header;
 
         for (int i = topLevel; i >= 0; i--) {
@@ -157,19 +114,22 @@ public class DefaultSkipList<K extends Comparable<? super K>, V> implements Skip
             if (updateTargetOrNull != null) {
                 // store closest element on each level
 
+                log.debug("Storing closest predecessor for level {}: {}", i, x);
                 updateTargetOrNull[i] = x;
             }
         }
 
         // only the lowest-level successor can be the candidate for sure
 
-        return x.getForward(0);
+        final Element candidate = x.getForward(0);
+        log.debug("Candidate returned: {}", candidate);
+        return candidate;
     }
 
     private int getRandomLevel() {
         int level = 0;
 
-        while (Math.random() < 0.5 && level < numberOfLevels - 1) {
+        while (Math.random() < P_LEVEL_SKIP && level < maxNumberOfLevels - 1) {
             level++;
         }
 
@@ -178,16 +138,16 @@ public class DefaultSkipList<K extends Comparable<? super K>, V> implements Skip
 
     @Override
     public String toString() {
-        StringBuilder sb = new StringBuilder();
+        final StringBuilder sb = new StringBuilder();
         for (int i = 0; i <= topLevel; i++) {
-            sb.append(String.format("Level %d: %s", i, toStringSingleLevel(i)));
+            sb.append(String.format("Level %d: %s", i, levelToString(i)));
             sb.append("\n");
         }
         return sb.toString();
     }
 
-    public String toStringSingleLevel(int level) {
-        StringBuilder sb = new StringBuilder();
+    private String levelToString(final int level) {
+        final StringBuilder sb = new StringBuilder();
         Element e = header.forward[level];
         while (e != null) {
             sb.append(e.key);
@@ -198,22 +158,27 @@ public class DefaultSkipList<K extends Comparable<? super K>, V> implements Skip
         return sb.toString();
     }
 
+    @SuppressWarnings("unchecked")
+    private Element[] createElementArrayAllLevels() {
+        return (Element[]) Array.newInstance(Element.class, maxNumberOfLevels);
+    }
+
     class Element {
-        private Element[] forward;
-        private K key;
+        private final Element[] forward;
+        private final K key;
         private V value;
 
-        public Element(K key, V value) {
+        public Element(final K key, final V value) {
             this.key = key;
             this.value = value;
-            this.forward = (Element[]) Array.newInstance(Element.class, numberOfLevels);
+            this.forward = createElementArrayAllLevels();
         }
 
-        public Element getForward(int i) {
+        public Element getForward(final int i) {
             return forward[i];
         }
 
-        public boolean hasLowerKey(K other) {
+        public boolean hasLowerKey(final K other) {
             return this.key.compareTo(other) < 0;
         }
 
@@ -221,31 +186,35 @@ public class DefaultSkipList<K extends Comparable<? super K>, V> implements Skip
             return value;
         }
 
-        public void setValue(V value) {
+        public void setValue(final V value) {
             this.value = value;
         }
 
-        public boolean hasKey(K key) {
+        public boolean hasKey(final K key) {
             return this.key.equals(key);
         }
 
-        public void setForward(int i, Element newForward) {
+        public void setForward(final int i, final Element newForward) {
             forward[i] = newForward;
         }
 
-        public boolean hasForward(int i) {
+        public boolean hasForward(final int i) {
             return forward[i] != null;
+        }
+
+        @Override
+        public String toString() {
+            return String.format("{%s -> %s}", key, value);
         }
     }
 
     class Header extends Element {
-
-        public Header(K key, V value) {
-            super(key, value);
+        public Header() {
+            super(null, null);
         }
 
         @Override
-        public boolean hasLowerKey(K other) {
+        public boolean hasLowerKey(final K other) {
             throw new IllegalStateException();
         }
 
@@ -255,13 +224,18 @@ public class DefaultSkipList<K extends Comparable<? super K>, V> implements Skip
         }
 
         @Override
-        public void setValue(V value) {
+        public void setValue(final V value) {
             throw new IllegalStateException();
         }
 
         @Override
-        public boolean hasKey(K key) {
+        public boolean hasKey(final K key) {
             throw new IllegalStateException();
+        }
+
+        @Override
+        public String toString() {
+            return String.format("<HEADER>");
         }
     }
 }

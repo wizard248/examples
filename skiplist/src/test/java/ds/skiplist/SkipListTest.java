@@ -1,60 +1,77 @@
 package ds.skiplist;
 
 import org.junit.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.security.SecureRandom;
+import java.util.Arrays;
+import java.util.List;
 import java.util.Random;
 
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.*;
 
 public class SkipListTest {
+    private static final Logger log = LoggerFactory.getLogger(SkipListTest.class);
     private static final Random RANDOM = new SecureRandom();
+    private final static List<Integer> SIZES = Arrays.asList(1, 3, 5, 6, 10, 100);
 
     @Test
-    public void testRev() {
-        SkipList<Integer, Integer> list = new DefaultSkipList<>(3);
-        for (int i = 10; i >= 1; i--) {
-            System.out.println("inserting " + i);
-            list.insert(i, i);
-            System.out.println(list);
+    public void testDecreasing() {
+        for (int size : SIZES) {
+            final SkipList<Integer, String> list = new DefaultSkipList<>(size);
+
+            for (int i = 10; i >= 1; i--) {
+                assertFalse(list.contains(i));
+                list.insert(i, getStringValue(i));
+                assertTrue(list.contains(i));
+            }
         }
     }
 
     @Test
-    public void test() {
-        SkipList<Integer, Integer> list = new DefaultSkipList<>(3);
-        System.out.println(list);
-        for (int i = 0; i < 10; i++) {
-            System.out.println("inserting " + i);
-            list.insert(i, i);
+    public void testIncreasing() {
+        for (int size : SIZES) {
+            final SkipList<Integer, String> list = new DefaultSkipList<>(size);
+
+            for (int i = 1; i <= 10; i++) {
+                assertFalse(list.contains(i));
+                list.insert(i, getStringValue(i));
+                assertTrue(list.contains(i));
+            }
         }
-        System.out.println(list);
     }
 
     @Test
-    public void hardTest() {
-        SkipList<Integer, Integer> list = new DefaultSkipList<>(10);
+    public void loadTest() {
+        for (int size : SIZES) {
+            final SkipList<Integer, String> list = new DefaultSkipList<>(size);
 
-        for (int i = 1; i <= 1000; i++) {
-            // insert
+            for (int i = 1; i <= 100; i++) {
+                // insert
 
-            int random = RANDOM.nextInt(50);
-            list.insert(random, random);
-            assertTrue(list.get(random).isPresent());
-            assertTrue(list.get(random).get().equals(random));
+                final int random1 = RANDOM.nextInt(20);
+                list.insert(random1, getStringValue(random1));
+                assertTrue(list.get(random1).isPresent());
+                assertTrue(list.get(random1).get().equals(getStringValue(random1)));
 
-            // delete
+                // delete
 
-            int random2 = RANDOM.nextInt(100);
-            list.delete(random2);
-            assertFalse(list.get(random2).isPresent());
+                final int random2 = RANDOM.nextInt(20);
+                final boolean wasThere = list.contains(random2);
+                assertEquals(wasThere, list.delete(random2));
+                assertFalse(list.contains(random2));
+                assertFalse(list.get(random2).isPresent());
 
-            // print
+                // print
 
-            System.out.println("================ " + i);
-            System.out.println(list);
+                log.info("====== {} ======", i);
+                log.debug(list.toString());
+            }
         }
+    }
 
+    private String getStringValue(final int i) {
+        return String.format("V%d", i);
     }
 }
