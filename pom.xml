@@ -10,6 +10,7 @@
     <packaging>pom</packaging>
 
     <modules>
+        <module>skiplist</module>
         <module>bitarray</module>
         <module>graph</module>
         <module>hash</module>
