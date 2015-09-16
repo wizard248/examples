@@ -10,10 +10,25 @@ import java.util.Optional;
  * Skip list implementation according to the original article.
  */
 public class DefaultSkipList<K extends Comparable<? super K>, V> implements SkipList<K, V> {
-    private static final double P_LEVEL_SKIP = 0.5;
+    /**
+     * logger instance
+     */
     private static final Logger log = LoggerFactory.getLogger(DefaultSkipList.class);
+    /**
+     * probability of skipping to a higher level
+     */
+    private static final double P_LEVEL_SKIP = 0.5;
+    /**
+     * header element (always the same, never empty)
+     */
     private final Element header;
+    /**
+     * maximum number of levels allowed
+     */
     private final int maxNumberOfLevels;
+    /**
+     * top level currently in the list
+     */
     private int topLevel;
 
     public DefaultSkipList(final int maxNumberOfLevels) {
@@ -41,7 +56,7 @@ public class DefaultSkipList<K extends Comparable<? super K>, V> implements Skip
 
     @Override
     public void insert(final K key, final V value) {
-        final Element[] update = createElementArrayAllLevels();
+        final Element[] update = createArrayOfElements();
         final Element x = lookup(key, update);
 
         if (hasKey(x, key)) {
@@ -51,17 +66,7 @@ public class DefaultSkipList<K extends Comparable<? super K>, V> implements Skip
         }
 
         final int randomItemLevel = getRandomLevel();
-
-        if (randomItemLevel > topLevel) {
-            // must extend the list level
-
-            for (int i = topLevel + 1; i <= randomItemLevel; i++) {
-                update[i] = header;
-            }
-
-            log.debug("Extending list level from {} to {}.", topLevel, randomItemLevel);
-            topLevel = randomItemLevel;
-        }
+        topLevel = Math.max(topLevel, randomItemLevel);
 
         final Element newElement = new Element(key, value);
 
@@ -75,7 +80,7 @@ public class DefaultSkipList<K extends Comparable<? super K>, V> implements Skip
 
     @Override
     public boolean delete(final K key) {
-        final Element[] update = createElementArrayAllLevels();
+        final Element[] update = createArrayOfElements();
         final Element x = lookup(key, update);
 
         if (!hasKey(x, key)) {
@@ -111,7 +116,29 @@ public class DefaultSkipList<K extends Comparable<? super K>, V> implements Skip
     // HELPER METHODS
     // ==============
 
-    private Element lookup(final K key, final Element[] updateTargetOrNull) {
+    /**
+     * Important helper method for performing key lookup.
+     * Besides the lookup it can also build an array of closest predecessors for each level.
+     * If the target array is given as argument instead of NULL, it will result to this:
+     * <ul>
+     * <li>levels outside of range - initialized with header</li>
+     * <li>levels in range - the closest element preceding the key looked up is stored</li>
+     * </ul>
+     * This array of predecessors can be used to simplify other operations.
+     *
+     * @param key key to lookup
+     * @param closestPredecessorsTarget array of predecessors to update (must be of sufficient length)
+     * @return best candidate found or NULL
+     */
+    private Element lookup(final K key, final Element[] closestPredecessorsTarget) {
+        if (closestPredecessorsTarget != null) {
+            // initialize predecessors with header
+
+            for (int i = 0; i < maxNumberOfLevels; i++) {
+                closestPredecessorsTarget[i] = header;
+            }
+        }
+
         log.debug("Looking up key [{}]...", key);
         Element x = header;
 
@@ -122,11 +149,11 @@ public class DefaultSkipList<K extends Comparable<? super K>, V> implements Skip
                 x = getForward(x, i);
             }
 
-            if (updateTargetOrNull != null) {
+            if (closestPredecessorsTarget != null) {
                 // store closest element on each level
 
                 log.debug("Storing closest predecessor for level {}: {}", i, x);
-                updateTargetOrNull[i] = x;
+                closestPredecessorsTarget[i] = x;
             }
         }
 
@@ -176,7 +203,7 @@ public class DefaultSkipList<K extends Comparable<? super K>, V> implements Skip
     }
 
     @SuppressWarnings("unchecked")
-    private Element[] createElementArrayAllLevels() {
+    private Element[] createArrayOfElements() {
         return (Element[]) Array.newInstance(Element.class, maxNumberOfLevels);
     }
 
@@ -215,7 +242,7 @@ public class DefaultSkipList<K extends Comparable<? super K>, V> implements Skip
         public Element(final K key, final V value) {
             this.key = key;
             this.value = value;
-            this.forward = createElementArrayAllLevels();
+            this.forward = createArrayOfElements();
         }
 
         @Override
