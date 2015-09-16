@@ -22,6 +22,9 @@ public class DefaultSkipList<K extends Comparable<? super K>, V> implements Skip
         this.header = new Header();
     }
 
+    // READING
+    // =======
+
     @Override
     public Optional<V> get(final K key) {
         final Element x = lookup(key, null);
@@ -32,6 +35,9 @@ public class DefaultSkipList<K extends Comparable<? super K>, V> implements Skip
 
         return Optional.empty();
     }
+
+    // WRITING
+    // =======
 
     @Override
     public void insert(final K key, final V value) {
@@ -101,6 +107,9 @@ public class DefaultSkipList<K extends Comparable<? super K>, V> implements Skip
         log.debug("Removed key [{}].", key);
         return true;
     }
+
+    // HELPER METHODS
+    // ==============
 
     private Element lookup(final K key, final Element[] updateTargetOrNull) {
         log.debug("Looking up key [{}]...", key);
@@ -173,27 +182,32 @@ public class DefaultSkipList<K extends Comparable<? super K>, V> implements Skip
 
     @Override
     public String toString() {
-        final StringBuilder sb = new StringBuilder();
+        final StringBuilder buffer = new StringBuilder(256);
+
         for (int i = 0; i <= topLevel; i++) {
-            sb.append(String.format("Level %d: %s", i, levelToString(i)));
-            sb.append("\n");
+            buffer.append("L");
+            buffer.append(String.valueOf(i));
+            buffer.append(": ");
+
+            Element e = getForward(header, i);
+
+            while (e != null) {
+                buffer.append(String.valueOf(e));
+                buffer.append(",");
+
+                e = getForward(e, i);
+            }
+
+            buffer.append("<END>\n");
         }
-        return sb.toString();
+
+        return buffer.toString();
     }
 
-    private String levelToString(final int level) {
-        final StringBuilder sb = new StringBuilder();
-        Element e = header.forward[level];
-        while (e != null) {
-            sb.append(e.key);
-            sb.append(",");
-            e = e.forward[level];
-        }
-        sb.append("<END>");
-        return sb.toString();
-    }
-
-    class Element {
+    /**
+     * Generic element.
+     */
+    private class Element {
         private final Element[] forward;
         private final K key;
         private V value;
@@ -206,18 +220,21 @@ public class DefaultSkipList<K extends Comparable<? super K>, V> implements Skip
 
         @Override
         public String toString() {
-            return String.format("{%s -> %s}", key, value);
+            return String.format("{%s => %s}", key, value);
         }
     }
 
-    class Header extends Element {
+    /**
+     * Special header element.
+     */
+    private class Header extends Element {
         public Header() {
             super(null, null);
         }
 
         @Override
         public String toString() {
-            return String.format("<HEADER>");
+            return "<HEADER>";
         }
     }
 }

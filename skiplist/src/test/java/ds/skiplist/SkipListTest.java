@@ -18,7 +18,7 @@ public class SkipListTest {
 
     @Test
     public void testDecreasing() {
-        for (int size : SIZES) {
+        for (final int size : SIZES) {
             final SkipList<Integer, String> list = new DefaultSkipList<>(size);
 
             for (int i = 10; i >= 1; i--) {
@@ -31,7 +31,7 @@ public class SkipListTest {
 
     @Test
     public void testIncreasing() {
-        for (int size : SIZES) {
+        for (final int size : SIZES) {
             final SkipList<Integer, String> list = new DefaultSkipList<>(size);
 
             for (int i = 1; i <= 10; i++) {
@@ -44,7 +44,7 @@ public class SkipListTest {
 
     @Test
     public void loadTest() {
-        for (int size : SIZES) {
+        for (final int size : SIZES) {
             final SkipList<Integer, String> list = new DefaultSkipList<>(size);
 
             for (int i = 1; i <= 100; i++) {
