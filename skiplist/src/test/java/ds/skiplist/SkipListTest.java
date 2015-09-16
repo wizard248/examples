@@ -65,7 +65,7 @@ public class SkipListTest {
 
                 // print
 
-                log.info("====== {} ======", i);
+                log.debug("====== {} ======", i);
                 log.debug(list.toString());
             }
         }

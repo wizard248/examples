@@ -7,7 +7,7 @@ import java.lang.reflect.Array;
 import java.util.Optional;
 
 /**
- * Skip list implementation according to the original article.
+ * Skip list implementation strongly based on the original article.
  */
 public class DefaultSkipList<K extends Comparable<? super K>, V> implements SkipList<K, V> {
     /**
@@ -41,11 +41,11 @@ public class DefaultSkipList<K extends Comparable<? super K>, V> implements Skip
     // =======
 
     @Override
-    public Optional<V> get(final K key) {
-        final Element x = lookup(key, null);
+    public Optional<V> get(final K keyToSearchFor) {
+        final Element x = lookup(keyToSearchFor, null);
 
-        if (hasKey(x, key)) {
-            return Optional.of(getValue(x));
+        if (x != null && x.key.equals(keyToSearchFor)) {
+            return Optional.of(x.value);
         }
 
         return Optional.empty();
@@ -55,47 +55,47 @@ public class DefaultSkipList<K extends Comparable<? super K>, V> implements Skip
     // =======
 
     @Override
-    public void insert(final K key, final V value) {
+    public void insert(final K desiredKey, final V desiredValue) {
         final Element[] update = createArrayOfElements();
-        final Element x = lookup(key, update);
+        final Element x = lookup(desiredKey, update);
 
-        if (hasKey(x, key)) {
+        if (x != null && x.key.equals(desiredKey)) {
             log.debug("Overriding value: {}", x);
-            setValue(x, value);
+            x.value = desiredValue;
             return;
         }
 
         final int randomItemLevel = getRandomLevel();
         topLevel = Math.max(topLevel, randomItemLevel);
 
-        final Element newElement = new Element(key, value);
+        final Element newElement = new Element(desiredKey, desiredValue);
 
         for (int i = 0; i <= randomItemLevel; i++) {
             final Element insertAfter = update[i];
-            setForward(newElement, i, getForward(insertAfter, i));
-            setForward(insertAfter, i, newElement);
+            newElement.forward[i] = insertAfter.forward[i];
+            insertAfter.forward[i] = newElement;
             log.debug("Inserted new element {} after {}.", newElement, insertAfter);
         }
     }
 
     @Override
-    public boolean delete(final K key) {
+    public boolean delete(final K desiredKey) {
         final Element[] update = createArrayOfElements();
-        final Element x = lookup(key, update);
+        final Element x = lookup(desiredKey, update);
 
-        if (!hasKey(x, key)) {
+        if (x == null || !x.key.equals(desiredKey)) {
             // not present - deletion not necessary
 
-            log.debug("Not deleting - the key [{}] is not present.", key);
+            log.debug("Not deleting - the key [{}] is not present.", desiredKey);
             return false;
         }
 
         // present - delete node by joining the list
 
         for (int i = 0; i <= topLevel; i++) {
-            if (getForward(update[i], i) == x) {
+            if (update[i].forward[i] == x) {
                 // skip the node being removed
-                setForward(update[i], i, getForward(x, i));
+                update[i].forward[i] = x.forward[i];
             } else {
                 // no need to continue further
                 break;
@@ -104,12 +104,12 @@ public class DefaultSkipList<K extends Comparable<? super K>, V> implements Skip
 
         // lower the list level if necessary
 
-        while (topLevel > 0 && !hasForward(header, topLevel)) {
+        while (topLevel > 0 && header.forward[topLevel] == null) {
             log.debug("Lowering list level from {} to one less.", topLevel);
             topLevel--;
         }
 
-        log.debug("Removed key [{}].", key);
+        log.debug("Removed key [{}].", desiredKey);
         return true;
     }
 
@@ -145,8 +145,8 @@ public class DefaultSkipList<K extends Comparable<? super K>, V> implements Skip
         for (int i = topLevel; i >= 0; i--) {
             // move forward through level as long as the keys are lower
 
-            while (hasForward(x, i) && hasLowerKey(getForward(x, i), key)) {
-                x = getForward(x, i);
+            while (x.forward[i] != null && x.forward[i].key.compareTo(key) < 0) {
+                x = x.forward[i];
             }
 
             if (closestPredecessorsTarget != null) {
@@ -159,9 +159,9 @@ public class DefaultSkipList<K extends Comparable<? super K>, V> implements Skip
 
         // only the lowest-level successor can be the candidate for sure
 
-        final Element candidate = getForward(x, 0);
-        log.debug("Candidate returned: {}", candidate);
-        return candidate;
+        x = x.forward[0];
+        log.debug("Candidate returned: {}", x);
+        return x;
     }
 
     private int getRandomLevel() {
@@ -172,34 +172,6 @@ public class DefaultSkipList<K extends Comparable<? super K>, V> implements Skip
         }
 
         return level;
-    }
-
-    private Element getForward(final Element element, final int level) {
-        return element.forward[level];
-    }
-
-    private void setForward(final Element element, final int level, final Element newForward) {
-        element.forward[level] = newForward;
-    }
-
-    private boolean hasForward(final Element element, final int level) {
-        return element.forward[level] != null;
-    }
-
-    private boolean hasLowerKey(final Element element, final K key) {
-        return element.key.compareTo(key) < 0;
-    }
-
-    private boolean hasKey(final Element element, final K key) {
-        return element != null && element.key.equals(key);
-    }
-
-    private V getValue(final Element element) {
-        return element.value;
-    }
-
-    private void setValue(final Element element, final V newValue) {
-        element.value = newValue;
     }
 
     @SuppressWarnings("unchecked")
@@ -216,13 +188,13 @@ public class DefaultSkipList<K extends Comparable<? super K>, V> implements Skip
             buffer.append(String.valueOf(i));
             buffer.append(": ");
 
-            Element e = getForward(header, i);
+            Element e = header.forward[i];
 
             while (e != null) {
                 buffer.append(String.valueOf(e));
                 buffer.append(",");
 
-                e = getForward(e, i);
+                e = e.forward[i];
             }
 
             buffer.append("<END>\n");
@@ -239,7 +211,7 @@ public class DefaultSkipList<K extends Comparable<? super K>, V> implements Skip
         private final K key;
         private V value;
 
-        public Element(final K key, final V value) {
+        private Element(final K key, final V value) {
             this.key = key;
             this.value = value;
             this.forward = createArrayOfElements();
@@ -255,7 +227,7 @@ public class DefaultSkipList<K extends Comparable<? super K>, V> implements Skip
      * Special header element.
      */
     private class Header extends Element {
-        public Header() {
+        private Header() {
             super(null, null);
         }
 
