@@ -26,11 +26,23 @@ public class DefaultSkipList<K extends Comparable<? super K>, V> implements Skip
     public Optional<V> get(final K key) {
         final Element x = lookup(key, null);
 
-        if (x != null && x.hasKey(key)) {
-            return Optional.of(x.getValue());
+        if (hasKey(x, key)) {
+            return Optional.of(getValue(x));
         }
 
         return Optional.empty();
+    }
+
+    private boolean hasKey(Element element, K key) {
+        return element != null && element.key.equals(key);
+    }
+
+    private V getValue(Element element) {
+        return element.value;
+    }
+
+    private void setValue(Element element, V newValue) {
+        element.value = newValue;
     }
 
     @Override
@@ -38,9 +50,9 @@ public class DefaultSkipList<K extends Comparable<? super K>, V> implements Skip
         final Element[] update = createElementArrayAllLevels();
         final Element x = lookup(key, update);
 
-        if (x != null && x.hasKey(key)) {
+        if (hasKey(x, key)) {
             log.debug("Overriding value: {}", x);
-            x.setValue(value);
+            setValue(x, value);
         } else {
             final int randomItemLevel = getRandomLevel();
 
@@ -58,11 +70,28 @@ public class DefaultSkipList<K extends Comparable<? super K>, V> implements Skip
             final Element newElement = new Element(key, value);
 
             for (int i = 0; i <= randomItemLevel; i++) {
-                newElement.setForward(i, update[i].getForward(i));
-                update[i].setForward(i, newElement);
-                log.debug("Inserted new element {} after {}.", newElement, update[i]);
+                final Element insertAfter = update[i];
+                setForward(newElement, i, getForward(insertAfter, i));
+                setForward(insertAfter, i, newElement);
+                log.debug("Inserted new element {} after {}.", newElement, insertAfter);
             }
         }
+    }
+
+    private Element getForward(Element element, int level) {
+        return element.forward[level];
+    }
+
+    private void setForward(Element element, int level, Element newForward) {
+        element.forward[level] = newForward;
+    }
+
+    private boolean hasForward(Element element, int level) {
+        return element.forward[level] != null;
+    }
+
+    private boolean hasLowerKey(Element element, K key) {
+        return element.key.compareTo(key) < 0;
     }
 
     @Override
@@ -70,13 +99,13 @@ public class DefaultSkipList<K extends Comparable<? super K>, V> implements Skip
         final Element[] update = createElementArrayAllLevels();
         final Element x = lookup(key, update);
 
-        if (x != null && x.hasKey(key)) {
+        if (hasKey(x, key)) {
             // present - delete node by joining the list
 
             for (int i = 0; i <= topLevel; i++) {
-                if (update[i].getForward(i) == x) {
+                if (getForward(update[i], i) == x) {
                     // skip the node being removed
-                    update[i].setForward(i, x.getForward(i));
+                    setForward(update[i], i, getForward(x, i));
                 } else {
                     // no need to continue further
                     break;
@@ -85,7 +114,7 @@ public class DefaultSkipList<K extends Comparable<? super K>, V> implements Skip
 
             // lower the list level if necessary
 
-            while (topLevel > 0 && header.getForward(topLevel) == null) {
+            while (topLevel > 0 && !hasForward(header, topLevel)) {
                 log.debug("Lowering list level from {} to one less.", topLevel);
                 topLevel--;
             }
@@ -107,8 +136,8 @@ public class DefaultSkipList<K extends Comparable<? super K>, V> implements Skip
         for (int i = topLevel; i >= 0; i--) {
             // move forward through level as long as the keys are lower
 
-            while (x.hasForward(i) && x.getForward(i).hasLowerKey(key)) {
-                x = x.getForward(i);
+            while (hasForward(x, i) && hasLowerKey(getForward(x, i), key)) {
+                x = getForward(x, i);
             }
 
             if (updateTargetOrNull != null) {
@@ -121,7 +150,7 @@ public class DefaultSkipList<K extends Comparable<? super K>, V> implements Skip
 
         // only the lowest-level successor can be the candidate for sure
 
-        final Element candidate = x.getForward(0);
+        final Element candidate = getForward(x, 0);
         log.debug("Candidate returned: {}", candidate);
         return candidate;
     }
@@ -174,34 +203,6 @@ public class DefaultSkipList<K extends Comparable<? super K>, V> implements Skip
             this.forward = createElementArrayAllLevels();
         }
 
-        public Element getForward(final int i) {
-            return forward[i];
-        }
-
-        public boolean hasLowerKey(final K other) {
-            return this.key.compareTo(other) < 0;
-        }
-
-        public V getValue() {
-            return value;
-        }
-
-        public void setValue(final V value) {
-            this.value = value;
-        }
-
-        public boolean hasKey(final K key) {
-            return this.key.equals(key);
-        }
-
-        public void setForward(final int i, final Element newForward) {
-            forward[i] = newForward;
-        }
-
-        public boolean hasForward(final int i) {
-            return forward[i] != null;
-        }
-
         @Override
         public String toString() {
             return String.format("{%s -> %s}", key, value);
@@ -211,26 +212,6 @@ public class DefaultSkipList<K extends Comparable<? super K>, V> implements Skip
     class Header extends Element {
         public Header() {
             super(null, null);
-        }
-
-        @Override
-        public boolean hasLowerKey(final K other) {
-            throw new IllegalStateException();
-        }
-
-        @Override
-        public V getValue() {
-            throw new IllegalStateException();
-        }
-
-        @Override
-        public void setValue(final V value) {
-            throw new IllegalStateException();
-        }
-
-        @Override
-        public boolean hasKey(final K key) {
-            throw new IllegalStateException();
         }
 
         @Override
