@@ -33,18 +33,6 @@ public class DefaultSkipList<K extends Comparable<? super K>, V> implements Skip
         return Optional.empty();
     }
 
-    private boolean hasKey(Element element, K key) {
-        return element != null && element.key.equals(key);
-    }
-
-    private V getValue(Element element) {
-        return element.value;
-    }
-
-    private void setValue(Element element, V newValue) {
-        element.value = newValue;
-    }
-
     @Override
     public void insert(final K key, final V value) {
         final Element[] update = createElementArrayAllLevels();
@@ -76,22 +64,6 @@ public class DefaultSkipList<K extends Comparable<? super K>, V> implements Skip
                 log.debug("Inserted new element {} after {}.", newElement, insertAfter);
             }
         }
-    }
-
-    private Element getForward(Element element, int level) {
-        return element.forward[level];
-    }
-
-    private void setForward(Element element, int level, Element newForward) {
-        element.forward[level] = newForward;
-    }
-
-    private boolean hasForward(Element element, int level) {
-        return element.forward[level] != null;
-    }
-
-    private boolean hasLowerKey(Element element, K key) {
-        return element.key.compareTo(key) < 0;
     }
 
     @Override
@@ -165,6 +137,39 @@ public class DefaultSkipList<K extends Comparable<? super K>, V> implements Skip
         return level;
     }
 
+    private Element getForward(Element element, int level) {
+        return element.forward[level];
+    }
+
+    private void setForward(Element element, int level, Element newForward) {
+        element.forward[level] = newForward;
+    }
+
+    private boolean hasForward(Element element, int level) {
+        return element.forward[level] != null;
+    }
+
+    private boolean hasLowerKey(Element element, K key) {
+        return element.key.compareTo(key) < 0;
+    }
+
+    private boolean hasKey(Element element, K key) {
+        return element != null && element.key.equals(key);
+    }
+
+    private V getValue(Element element) {
+        return element.value;
+    }
+
+    private void setValue(Element element, V newValue) {
+        element.value = newValue;
+    }
+
+    @SuppressWarnings("unchecked")
+    private Element[] createElementArrayAllLevels() {
+        return (Element[]) Array.newInstance(Element.class, maxNumberOfLevels);
+    }
+
     @Override
     public String toString() {
         final StringBuilder sb = new StringBuilder();
@@ -185,11 +190,6 @@ public class DefaultSkipList<K extends Comparable<? super K>, V> implements Skip
         }
         sb.append("<END>");
         return sb.toString();
-    }
-
-    @SuppressWarnings("unchecked")
-    private Element[] createElementArrayAllLevels() {
-        return (Element[]) Array.newInstance(Element.class, maxNumberOfLevels);
     }
 
     class Element {
