@@ -41,28 +41,29 @@ public class DefaultSkipList<K extends Comparable<? super K>, V> implements Skip
         if (hasKey(x, key)) {
             log.debug("Overriding value: {}", x);
             setValue(x, value);
-        } else {
-            final int randomItemLevel = getRandomLevel();
+            return;
+        }
 
-            if (randomItemLevel > topLevel) {
-                // must extend the list level
+        final int randomItemLevel = getRandomLevel();
 
-                for (int i = topLevel + 1; i <= randomItemLevel; i++) {
-                    update[i] = header;
-                }
+        if (randomItemLevel > topLevel) {
+            // must extend the list level
 
-                log.debug("Extending list level from {} to {}.", topLevel, randomItemLevel);
-                topLevel = randomItemLevel;
+            for (int i = topLevel + 1; i <= randomItemLevel; i++) {
+                update[i] = header;
             }
 
-            final Element newElement = new Element(key, value);
+            log.debug("Extending list level from {} to {}.", topLevel, randomItemLevel);
+            topLevel = randomItemLevel;
+        }
 
-            for (int i = 0; i <= randomItemLevel; i++) {
-                final Element insertAfter = update[i];
-                setForward(newElement, i, getForward(insertAfter, i));
-                setForward(insertAfter, i, newElement);
-                log.debug("Inserted new element {} after {}.", newElement, insertAfter);
-            }
+        final Element newElement = new Element(key, value);
+
+        for (int i = 0; i <= randomItemLevel; i++) {
+            final Element insertAfter = update[i];
+            setForward(newElement, i, getForward(insertAfter, i));
+            setForward(insertAfter, i, newElement);
+            log.debug("Inserted new element {} after {}.", newElement, insertAfter);
         }
     }
 
@@ -71,34 +72,34 @@ public class DefaultSkipList<K extends Comparable<? super K>, V> implements Skip
         final Element[] update = createElementArrayAllLevels();
         final Element x = lookup(key, update);
 
-        if (hasKey(x, key)) {
-            // present - delete node by joining the list
-
-            for (int i = 0; i <= topLevel; i++) {
-                if (getForward(update[i], i) == x) {
-                    // skip the node being removed
-                    setForward(update[i], i, getForward(x, i));
-                } else {
-                    // no need to continue further
-                    break;
-                }
-            }
-
-            // lower the list level if necessary
-
-            while (topLevel > 0 && !hasForward(header, topLevel)) {
-                log.debug("Lowering list level from {} to one less.", topLevel);
-                topLevel--;
-            }
-
-            log.debug("Removed key [{}].", key);
-            return true;
-        } else {
+        if (!hasKey(x, key)) {
             // not present - deletion not necessary
 
             log.debug("Not deleting - the key [{}] is not present.", key);
             return false;
         }
+
+        // present - delete node by joining the list
+
+        for (int i = 0; i <= topLevel; i++) {
+            if (getForward(update[i], i) == x) {
+                // skip the node being removed
+                setForward(update[i], i, getForward(x, i));
+            } else {
+                // no need to continue further
+                break;
+            }
+        }
+
+        // lower the list level if necessary
+
+        while (topLevel > 0 && !hasForward(header, topLevel)) {
+            log.debug("Lowering list level from {} to one less.", topLevel);
+            topLevel--;
+        }
+
+        log.debug("Removed key [{}].", key);
+        return true;
     }
 
     private Element lookup(final K key, final Element[] updateTargetOrNull) {
@@ -137,31 +138,31 @@ public class DefaultSkipList<K extends Comparable<? super K>, V> implements Skip
         return level;
     }
 
-    private Element getForward(Element element, int level) {
+    private Element getForward(final Element element, final int level) {
         return element.forward[level];
     }
 
-    private void setForward(Element element, int level, Element newForward) {
+    private void setForward(final Element element, final int level, final Element newForward) {
         element.forward[level] = newForward;
     }
 
-    private boolean hasForward(Element element, int level) {
+    private boolean hasForward(final Element element, final int level) {
         return element.forward[level] != null;
     }
 
-    private boolean hasLowerKey(Element element, K key) {
+    private boolean hasLowerKey(final Element element, final K key) {
         return element.key.compareTo(key) < 0;
     }
 
-    private boolean hasKey(Element element, K key) {
+    private boolean hasKey(final Element element, final K key) {
         return element != null && element.key.equals(key);
     }
 
-    private V getValue(Element element) {
+    private V getValue(final Element element) {
         return element.value;
     }
 
-    private void setValue(Element element, V newValue) {
+    private void setValue(final Element element, final V newValue) {
         element.value = newValue;
     }
 
