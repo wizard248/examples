@@ -17,6 +17,7 @@
         <module>lz77</module>
         <module>lz78</module>
         <module>lzw</module>
+        <module>patterns</module>
     </modules>
 
     <repositories>
@@ -46,7 +47,7 @@
             <dependency>
                 <groupId>junit</groupId>
                 <artifactId>junit</artifactId>
-                <version>4.11</version>
+                <version>4.12</version>
             </dependency>
             <dependency>
                 <groupId>ch.qos.logback</groupId>
