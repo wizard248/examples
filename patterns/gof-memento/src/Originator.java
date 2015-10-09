@@ -1,21 +1,21 @@
 public class Originator<S> {
-    private S currentState;
+    private S internalState;
 
-    public Memento<S> saveToMemento() {
-        return new Memento<>(this.currentState);
+    public Memento<S> saveStateToMemento() {
+        return new Memento<>(this.internalState);
     }
 
-    public void restoreFromMemento(final Memento<S> memento) {
-        this.currentState = memento.getSavedState();
+    public void restoreStateFromMemento(final Memento<S> memento) {
+        this.internalState = memento.getStoredState();
     }
 
     // JUST FOR TESTING - class state should not be ever public (due encapsulation)
 
     S getCurrentStateTestOnly() {
-        return currentState;
+        return internalState;
     }
 
     void setCurrentStateTestOnly(final S currentState) {
-        this.currentState = currentState;
+        this.internalState = currentState;
     }
 }

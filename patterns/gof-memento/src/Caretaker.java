@@ -10,10 +10,10 @@ public class Caretaker<S> {
     }
 
     public void saveState() {
-        history.push(originator.saveToMemento());
+        history.push(originator.saveStateToMemento());
     }
 
     public void undoState() {
-        originator.restoreFromMemento(history.pop());
+        originator.restoreStateFromMemento(history.pop());
     }
 }

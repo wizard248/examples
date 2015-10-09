@@ -1,11 +1,11 @@
 public class Memento<S> {
-    private final S savedState;
+    private final S storedState;
 
-    public Memento(final S savedState) {
-        this.savedState = savedState;
+    public Memento(final S storedState) {
+        this.storedState = storedState;
     }
 
-    public S getSavedState() {
-        return savedState;
+    public S getStoredState() {
+        return storedState;
     }
 }
