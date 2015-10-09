@@ -11,7 +11,7 @@ public class Originator<S> {
 
     // JUST FOR TESTING - class state should not be ever public (due encapsulation)
 
-    S getCurrentState() {
+    S getCurrentStateTestOnly() {
         return currentState;
     }
 

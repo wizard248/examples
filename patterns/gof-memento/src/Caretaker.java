@@ -1,28 +1,19 @@
-import org.junit.Test;
+import java.util.Stack;
 
-import static org.junit.Assert.assertEquals;
+public class Caretaker<S> {
+    private final Originator<S> originator;
+    private final Stack<Memento<S>> history;
 
-public class Caretaker {
-    private static final String ORIGINAL_STATE = "original state";
-    private static final String UPDATED_STATE = "updated state";
+    public Caretaker(final Originator<S> originator) {
+        this.originator = originator;
+        this.history = new Stack<>();
+    }
 
-    @Test
-    public void test() {
-        final Originator<String> originator = new Originator<>();
+    public void saveState() {
+        history.push(originator.saveToMemento());
+    }
 
-        // initialize state
-        originator.setCurrentStateTestOnly(ORIGINAL_STATE);
-        assertEquals(ORIGINAL_STATE, originator.getCurrentState());
-
-        // save state using memento
-        final Memento<String> memento = originator.saveToMemento();
-
-        // change state
-        originator.setCurrentStateTestOnly(UPDATED_STATE);
-        assertEquals(UPDATED_STATE, originator.getCurrentState());
-
-        // restore state using memento
-        originator.restoreFromMemento(memento);
-        assertEquals(ORIGINAL_STATE, originator.getCurrentState());
+    public void undoState() {
+        originator.restoreFromMemento(history.pop());
     }
 }
