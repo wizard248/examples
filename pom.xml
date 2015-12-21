@@ -18,6 +18,7 @@
         <module>lz78</module>
         <module>lzw</module>
         <module>patterns</module>
+        <module>libraries</module>
     </modules>
 
     <repositories>
