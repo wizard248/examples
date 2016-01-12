@@ -19,6 +19,7 @@
         <module>lzw</module>
         <module>patterns</module>
         <module>libraries</module>
+        <module>shitorrent</module>
     </modules>
 
     <repositories>
