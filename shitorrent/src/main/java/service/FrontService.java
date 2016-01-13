@@ -1,19 +1,29 @@
 package service;
 
 import model.ResourceHandle;
+import service.worker.DownloadingWorker;
+import service.worker.SwarmUpdatingWorker;
 
 import java.io.IOException;
 import java.net.InetAddress;
 import java.nio.file.Path;
+import java.time.Duration;
 import java.util.List;
 
 public class FrontService {
     private final ResourceDataService resourceDataService;
     private final ResourceMetaDataService resourceMetaDataService;
+    private final WorkerSchedulingService workerSchedulingService;
 
-    public FrontService(final ResourceDataService resourceDataService, final ResourceMetaDataService resourceMetaDataService) {
+    public FrontService(final ResourceDataService resourceDataService, final ResourceMetaDataService resourceMetaDataService, final WorkerSchedulingService workerSchedulingService) {
         this.resourceDataService = resourceDataService;
         this.resourceMetaDataService = resourceMetaDataService;
+        this.workerSchedulingService = workerSchedulingService;
+    }
+
+    public void startWorkers() {
+        workerSchedulingService.schedule(new SwarmUpdatingWorker(resourceMetaDataService), Duration.ofSeconds(10));
+        workerSchedulingService.schedule(new DownloadingWorker(resourceMetaDataService, resourceDataService), Duration.ofSeconds(5));
     }
 
     public List<String> listResourceIds() {

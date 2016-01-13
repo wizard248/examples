@@ -37,4 +37,9 @@ public class ResourceHandle {
     public int getNumberOfChunks() {
         return (int) Math.ceil((double) fileSize / (double) chunkSize);
     }
+
+    @Override
+    public String toString() {
+        return String.format("%s @ %s (%d bytes split by %d)", seederAddress, resourceId, fileSize, chunkSize);
+    }
 }

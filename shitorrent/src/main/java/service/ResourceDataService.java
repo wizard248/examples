@@ -6,8 +6,11 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Path;
+import java.util.logging.Logger;
 
 public class ResourceDataService {
+    private final static Logger LOGGER = Logger.getAnonymousLogger();
+
     public byte[] getChunk(final Path originalPath, final int chunkIndex, final int chunkSize) throws IOException {
         ByteArrayOutputStream target = new ByteArrayOutputStream(chunkSize);
 
@@ -35,6 +38,7 @@ public class ResourceDataService {
 
                 target.write(data);
                 bytesRemainingToRead--;
+                LOGGER.info("Digging...");
             }
         }
 
@@ -43,5 +47,6 @@ public class ResourceDataService {
 
     public void writeChunk(final Path targetPath, final int chunkIndex, final int chunkSize, final byte[] data) {
         // TODO
+        LOGGER.info("Writing chunk: " + chunkIndex);
     }
 }

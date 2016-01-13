@@ -1,8 +1,5 @@
 package service;
 
-import service.FrontService;
-import service.Operation;
-
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.IOException;
@@ -34,6 +31,7 @@ public class Server {
     public void start() throws IOException {
         final ServerSocket serverSocket = new ServerSocket(port);
         LOGGER.info("Started server at port: " + port);
+        frontService.startWorkers();
 
         while (true) {
             final Socket clientSocket = serverSocket.accept();

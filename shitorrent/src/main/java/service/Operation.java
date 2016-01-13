@@ -23,9 +23,19 @@ public enum Operation {
             for (final Operation operation : Operation.values()) {
                 writer.write(operation.name());
 
-                for (String argument : operation.getArguments()) {
+                final List<String> arguments = operation.getArguments();
+
+                if (!arguments.isEmpty()) {
                     writer.write(' ');
-                    writer.write(argument);
+                    writer.write('[');
+
+                    for (String argument : arguments) {
+                        writer.write(' ');
+                        writer.write(argument);
+                    }
+
+                    writer.write(' ');
+                    writer.write(']');
                 }
 
                 writer.write(CRLF);
@@ -174,4 +184,14 @@ public enum Operation {
     }
 
     abstract public void perform(final FrontService service, final BufferedReader reader, final BufferedWriter writer) throws IOException;
+
+    protected void send(final BufferedWriter writer, String... arguments) throws IOException {
+        writer.write(name());
+        writer.write(CRLF);
+
+        for (String argument : arguments) {
+            writer.write(argument);
+            writer.write(CRLF);
+        }
+    }
 }

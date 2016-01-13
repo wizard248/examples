@@ -12,6 +12,8 @@ import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
+import java.util.Random;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
@@ -55,6 +57,12 @@ public class ResourceMetaDataService {
         }
     }
 
+    public Path getTargetPath(final String resourceId) {
+        synchronized (lock) {
+            return resourceToTargetFile.get(findById(resourceId));
+        }
+    }
+
     public int getChunkSize(final String resourceId) {
         synchronized (lock) {
             return findById(resourceId).getChunkSize();
@@ -77,6 +85,7 @@ public class ResourceMetaDataService {
     public ResourceHandle seed(final Path fileToShare) throws IOException {
         synchronized (lock) {
             assurePathIsUnused(fileToShare);
+            LOGGER.info(String.format("Seeding file: %s", fileToShare));
 
             final ResourceHandle resourceToSeed = new ResourceHandle(
                     InetAddress.getLocalHost(),
@@ -97,12 +106,40 @@ public class ResourceMetaDataService {
     public void leech(final ResourceHandle resourceToLeech, final Path fileToWrite) {
         synchronized (lock) {
             assurePathIsUnused(fileToWrite);
+            LOGGER.info(String.format("Leehing file: %s", resourceToLeech));
 
             resourceHandles.add(resourceToLeech);
             resourceToTargetFile.put(resourceToLeech, fileToWrite);
             resourceToBitSet.put(resourceToLeech, createEmptyBitSet(resourceToLeech.getNumberOfChunks()));
             resourceToSwarm.put(resourceToLeech, new LinkedList<>(Collections.singletonList(resourceToLeech.getSeederAddress())));
             LOGGER.info(String.format("Leeching file %s to %s.", resourceToLeech, fileToWrite));
+        }
+    }
+
+    public Optional<String> getRandomUnfinishedResourceId() {
+        synchronized (lock) {
+            return resourceToBitSet
+                    .entrySet()
+                    .stream()
+                    .filter(e -> e.getValue().cardinality() < e.getKey().getNumberOfChunks())
+                    .findFirst()
+                    .map(e -> e.getKey().getResourceId());
+        }
+    }
+
+    public Optional<Integer> getRandomUnfinishedChunk(final String resourceId) {
+        synchronized (lock) {
+            BitSet bits = resourceToBitSet.get(findById(resourceId));
+
+            // TODO
+            return Optional.of(new Random().nextInt(100));
+        }
+    }
+
+    public void markChunkCompleted(final String resourceId, final int chunkIndex) {
+        synchronized (lock) {
+            resourceToBitSet.get(findById(resourceId)).set(chunkIndex);
+            LOGGER.info(String.format("Market %s[%d] as completed.", resourceId, chunkIndex));
         }
     }
 
