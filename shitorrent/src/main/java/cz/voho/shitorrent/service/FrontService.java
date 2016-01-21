@@ -10,7 +10,7 @@ import cz.voho.shitorrent.model.external.InfoForLeechingCrate;
 import cz.voho.shitorrent.model.external.InfoForSeedingCrate;
 import cz.voho.shitorrent.model.external.ResourceMetaDetailCrate;
 import cz.voho.shitorrent.model.external.ResourceMetaSummaryCrate;
-import cz.voho.shitorrent.model.internal.Bitmap;
+import cz.voho.shitorrent.model.internal.Resource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -45,13 +45,14 @@ public class FrontService {
 
     public ResourceMetaDetailCrate getResourceDetail(final String key) throws ResourceNotFoundException {
         return resourceManagementService.getResource(key)
+                .filter(Resource::isInitialized)
                 .map(resource -> {
                     final ResourceMetaDetailCrate result = new ResourceMetaDetailCrate();
                     result.setKey(resource.getKey());
                     result.setName(resource.getName());
                     result.setFileSize(resource.getFileSize());
                     result.setChunkSize(resource.getChunkSize());
-                    result.setBitmap(resource.getAvailabilityBitmap().orElse(new Bitmap(0)).toString());
+                    result.setBitmap(resource.getAvailabilityBitmap().toString());
                     result.setSwarm(new ArrayList<>(resource.getPeers()));
                     return result;
                 })

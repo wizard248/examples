@@ -7,7 +7,6 @@ import cz.voho.shitorrent.exception.ErrorReadingChunkException;
 import cz.voho.shitorrent.exception.ResourceNotFoundException;
 import cz.voho.shitorrent.model.external.InfoForLeechingCrate;
 import cz.voho.shitorrent.model.external.InfoForSeedingCrate;
-import cz.voho.shitorrent.model.internal.Configuration;
 import cz.voho.shitorrent.model.internal.Resource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -37,8 +36,6 @@ public class ResourceManagementService {
     private final Logger log = LoggerFactory.getLogger(getClass());
     private final Map<String, Resource> resourceByKey;
     private final Object resourcesLock;
-    @Autowired
-    private Configuration configuration;
     @Autowired
     private BasicInputOutputService basicInputOutputService;
 
@@ -84,13 +81,7 @@ public class ResourceManagementService {
                 throw new ChunkNotFoundException(key, chunkIndex);
             }
 
-            final Optional<Path> backingFileOption = state.getBackingFile();
-
-            if (!backingFileOption.isPresent()) {
-                throw new ChunkNotFoundException(key, chunkIndex);
-            }
-
-            final Path backingFile = backingFileOption.get();
+            final Path backingFile = state.getBackingFile();
             final int chunkSize = state.getChunkSize();
             final long backingFileSize = state.getFileSize();
             final byte[] data = basicInputOutputService.readBinaryChunk(backingFile, backingFileSize, chunkIndex, chunkSize);
@@ -119,7 +110,7 @@ public class ResourceManagementService {
         synchronized (resourcesLock) {
             final String key = generateHash(sourcePath);
             final Resource resource = new Resource(key);
-            resource.onSeeding(sourcePath, getTotalSize(sourcePath));
+            resource.initializeForSeeding(sourcePath, getTotalSize(sourcePath));
             resourceByKey.put(key, resource);
             return resource;
         }
@@ -129,7 +120,7 @@ public class ResourceManagementService {
         synchronized (resourcesLock) {
             final String key = infoForLeeching.getResourceKey();
             final Resource resource = new Resource(key);
-            resource.onLeeching(infoForLeeching.getSeeders());
+            resource.initializeForLeeching(infoForLeeching.getSeeders());
             resourceByKey.put(key, resource);
             return resource;
         }

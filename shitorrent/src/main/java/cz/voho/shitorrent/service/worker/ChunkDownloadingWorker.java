@@ -117,7 +117,7 @@ public class ChunkDownloadingWorker implements Worker {
         ResourceMetaDetailCrate detail = otherPeerClientService.downloadResourceDetail(sourcePeer, resource.getKey());
         Path output = configuration.getOutputDirectory().resolve(detail.getName());
         resource.onInitialDownloadCompleted(detail, output);
-        resource.updatePeerAvailability(sourcePeer, new Bitmap(detail.getBitmap()));
+        resource.updateSeederAvailability(sourcePeer, new Bitmap(detail.getBitmap()));
 
         log.info("Initial download of {} from {} completed.", resource.getKey(), sourcePeer);
     }
@@ -126,14 +126,8 @@ public class ChunkDownloadingWorker implements Worker {
         log.info("Starting download of chunk {} of {} from {}...", chunkIndex, resource.getKey(), sourcePeer);
 
         final ChunkCrate chunk = otherPeerClientService.downloadChunk(sourcePeer, resource.getKey(), chunkIndex);
-        final Optional<Path> targetPath = resource.getBackingFile();
-
-        if (!targetPath.isPresent()) {
-            log.warn("No target file.");
-            return;
-        }
-
-        basicInputOutputService.writeBinaryChunk(targetPath.get(), resource.getFileSize(), chunkIndex, resource.getChunkSize(), chunk.getData());
+        final Path targetPath = resource.getBackingFile();
+        basicInputOutputService.writeBinaryChunk(targetPath, resource.getFileSize(), chunkIndex, resource.getChunkSize(), chunk.getData());
 
         log.info("Chunk {} of {} was downloaded from {}.", chunkIndex, resource.getKey(), sourcePeer);
     }
