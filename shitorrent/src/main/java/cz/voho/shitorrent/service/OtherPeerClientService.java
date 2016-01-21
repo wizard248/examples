@@ -1,5 +1,6 @@
 package cz.voho.shitorrent.service;
 
+import cz.voho.shitorrent.exception.NoPeerConnectionException;
 import cz.voho.shitorrent.model.external.ChunkCrate;
 import cz.voho.shitorrent.model.external.PeerCrate;
 import cz.voho.shitorrent.model.external.ResourceMetaDetailCrate;
@@ -9,6 +10,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
 
 import javax.annotation.PostConstruct;
@@ -27,23 +29,28 @@ public class OtherPeerClientService {
     @PostConstruct
     public void initialize() {
         httpRequestFactory = new SimpleClientHttpRequestFactory();
-        httpRequestFactory.setConnectTimeout(5000);
-        httpRequestFactory.setReadTimeout(5000);
+        httpRequestFactory.setConnectTimeout(configuration.getPeerConnectionTimeoutMs());
+        httpRequestFactory.setReadTimeout(configuration.getPeerConnectionTimeoutMs());
     }
 
-    public ResourceMetaDetailCrate downloadResourceDetail(final PeerCrate randomSeeder, final String key) {
+    public ResourceMetaDetailCrate downloadResourceDetail(final PeerCrate randomSeeder, final String key) throws NoPeerConnectionException {
         String url = getUrlForGetResourceDetail(randomSeeder, key);
         return httpGet(url, ResourceMetaDetailCrate.class);
     }
 
-    public ChunkCrate downloadChunk(final PeerCrate randomSeeder, final String key, final int chunkIndex) {
+    public ChunkCrate downloadChunk(final PeerCrate randomSeeder, final String key, final int chunkIndex) throws NoPeerConnectionException {
         String url = getUrlForGetChunk(randomSeeder, key, chunkIndex);
         return httpGet(url, ChunkCrate.class);
     }
 
-    private <T> T httpGet(String url, Class<T> type) {
+    private <T> T httpGet(String url, Class<T> type) throws NoPeerConnectionException {
         log.info("Downloading {} from {}...", type.getName(), url);
-        return new RestTemplate(httpRequestFactory).getForObject(url, type);
+
+        try {
+            return new RestTemplate(httpRequestFactory).getForObject(url, type);
+        } catch (RestClientException e) {
+            throw new NoPeerConnectionException(url, e);
+        }
     }
 
     private String getUrlForGetResourceDetail(final PeerCrate peerCrate, final String key) {

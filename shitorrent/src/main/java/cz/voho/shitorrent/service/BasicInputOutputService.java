@@ -1,7 +1,6 @@
 package cz.voho.shitorrent.service;
 
 import cz.voho.shitorrent.exception.ErrorReadingChunkException;
-import cz.voho.shitorrent.exception.ErrorTruncatingFileException;
 import cz.voho.shitorrent.exception.ErrorWritingChunkException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -21,41 +20,34 @@ import java.nio.file.StandardOpenOption;
 public class BasicInputOutputService {
     private final Logger log = LoggerFactory.getLogger(getClass());
 
-    public byte[] readBinaryChunk(final Path path, final int chunkIndex, final int chunkSize) throws ErrorReadingChunkException {
-        final long offset = chunkIndex * chunkSize;
-        log.info("Reading bytes {} .. {} from {}...", offset, offset + chunkSize - 1, path);
+    public byte[] readBinaryChunk(final Path path, final long fileSize, final int chunkIndex, final int chunkSize) throws ErrorReadingChunkException {
+        final long offset = calculateOffset(chunkIndex, chunkSize);
+        final int chunkSizeAdjusted = adjustChunkSize(offset, chunkSize, fileSize);
+        log.info("Reading bytes {} .. {} from {}...", offset, offset + chunkSizeAdjusted - 1, path);
 
         try (SeekableByteChannel channel = createReadableChannel(path)) {
-            final ByteBuffer buffer = ByteBuffer.allocate(chunkSize);
+            final ByteBuffer buffer = ByteBuffer.allocate(chunkSizeAdjusted);
             channel.position(offset);
             channel.read(buffer);
             return buffer.array();
         } catch (final IOException e) {
             log.error("Error while reading binary chunk.", e);
-            throw new ErrorReadingChunkException(path, offset, chunkSize, e);
+            throw new ErrorReadingChunkException(path, offset, chunkSizeAdjusted, e);
         }
     }
 
-    public void writeBinaryChunk(final Path path, final int chunkIndex, final int chunkSize, final byte[] data) throws ErrorWritingChunkException {
-        final long offset = chunkIndex * chunkSize;
-        log.info("Writing bytes {} .. {} to {}...", offset, offset + chunkSize - 1, path);
+    public void writeBinaryChunk(final Path path, final long fileSize, final int chunkIndex, final int chunkSize, final byte[] data) throws ErrorWritingChunkException {
+        final long offset = calculateOffset(chunkIndex, chunkSize);
+        final int chunkSizeAdjusted = adjustChunkSize(offset, chunkSize, fileSize);
+        log.info("Writing bytes {} .. {} to {}...", offset, offset + chunkSizeAdjusted - 1, path);
 
         try (SeekableByteChannel channel = createWritableChannel(path)) {
-            final ByteBuffer buffer = ByteBuffer.wrap(data, 0, chunkSize);
+            final ByteBuffer buffer = ByteBuffer.wrap(data, 0, chunkSizeAdjusted);
             channel.position(offset);
             channel.write(buffer);
         } catch (final IOException e) {
             log.error("Error while writing binary chunk.", e);
-            throw new ErrorWritingChunkException(path, offset, chunkSize, e);
-        }
-    }
-
-    public void truncateToFileSize(final Path path, final long targetFileSize) throws ErrorTruncatingFileException {
-        try (SeekableByteChannel channel = createWritableChannel(path)) {
-            channel.truncate(targetFileSize);
-        } catch (final IOException e) {
-            log.error("Error while truncating file.", e);
-            throw new ErrorTruncatingFileException(path, e);
+            throw new ErrorWritingChunkException(path, offset, chunkSizeAdjusted, e);
         }
     }
 
@@ -65,5 +57,18 @@ public class BasicInputOutputService {
 
     private SeekableByteChannel createReadableChannel(final Path path) throws IOException {
         return Files.newByteChannel(path, StandardOpenOption.READ);
+    }
+
+    private int adjustChunkSize(final long offset, final int chunkSize, final long fileSize) {
+        if (offset + chunkSize > fileSize) {
+            // last chunk: its size must be truncated
+            return (int) (fileSize % chunkSize);
+        } else {
+            return chunkSize;
+        }
+    }
+
+    private long calculateOffset(final int chunkIndex, final int chunkSize) {
+        return chunkIndex * chunkSize;
     }
 }

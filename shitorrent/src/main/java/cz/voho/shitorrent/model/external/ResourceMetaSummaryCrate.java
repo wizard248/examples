@@ -42,10 +42,4 @@ public class ResourceMetaSummaryCrate {
     public void setChunkSize(final int chunkSize) {
         this.chunkSize = chunkSize;
     }
-
-    @JsonIgnore
-    public int getChunkCount() {
-        // read-only
-        return (int) Math.ceil((double) fileSize / (double) chunkSize);
-    }
 }

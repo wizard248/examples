@@ -2,8 +2,10 @@ package cz.voho.shitorrent.model.internal;
 
 import cz.voho.shitorrent.model.external.PeerCrate;
 
+import javax.annotation.PostConstruct;
+import java.io.IOException;
 import java.net.InetAddress;
-import java.net.UnknownHostException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 
@@ -11,6 +13,7 @@ import java.nio.file.Paths;
  * Created by vojta on 18/01/16.
  */
 public class Configuration {
+    private String localHost;
     private int localPort;
 
     public int getLocalPort() {
@@ -25,22 +28,28 @@ public class Configuration {
         return Paths.get("/Users/vojta/Downloads/tor/" + localPort);
     }
 
-    public PeerCrate getLocalPeer() {
-        try {
-            PeerCrate result = new PeerCrate();
-            result.setHost(InetAddress.getLocalHost().getHostAddress());
-            result.setPort(localPort);
-            return result;
-        } catch (UnknownHostException e) {
-            throw new IllegalStateException("Cannot get local peer.", e);
-        }
+    @PostConstruct
+    public void initialize() throws IOException {
+        localHost = InetAddress.getLocalHost().getHostAddress();
+        Files.createDirectories(getOutputDirectory());
     }
 
-    public int getSchedulerThreads() {
-        return getMaxNumberOfConcurrentDownloads() + 5;
+    public PeerCrate getLocalPeer() {
+        PeerCrate result = new PeerCrate();
+        result.setHost(localHost);
+        result.setPort(localPort);
+        return result;
     }
 
     public int getMaxNumberOfConcurrentDownloads() {
-        return 10;
+        return 5;
+    }
+
+    public int getMaxNumberOfConcurrentSwarmUpdaters() {
+        return 3;
+    }
+
+    public int getPeerConnectionTimeoutMs() {
+        return 3000;
     }
 }

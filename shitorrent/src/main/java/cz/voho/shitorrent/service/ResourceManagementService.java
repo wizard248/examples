@@ -5,15 +5,10 @@ import cz.voho.shitorrent.exception.CannotSeedException;
 import cz.voho.shitorrent.exception.ChunkNotFoundException;
 import cz.voho.shitorrent.exception.ErrorReadingChunkException;
 import cz.voho.shitorrent.exception.ResourceNotFoundException;
-import cz.voho.shitorrent.model.external.ChunkCrate;
 import cz.voho.shitorrent.model.external.InfoForLeechingCrate;
 import cz.voho.shitorrent.model.external.InfoForSeedingCrate;
-import cz.voho.shitorrent.model.external.PeerCrate;
-import cz.voho.shitorrent.model.external.ResourceMetaDetailCrate;
-import cz.voho.shitorrent.model.external.ResourceMetaSummaryCrate;
-import cz.voho.shitorrent.model.internal.Bitmap;
 import cz.voho.shitorrent.model.internal.Configuration;
-import cz.voho.shitorrent.model.internal.ResourceAvailabilityState;
+import cz.voho.shitorrent.model.internal.Resource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -32,7 +27,6 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
@@ -40,9 +34,8 @@ import java.util.stream.Collectors;
  */
 @Service
 public class ResourceManagementService {
-    private static final int DEFAULT_CHUNK_SIZE = 1024;
     private final Logger log = LoggerFactory.getLogger(getClass());
-    private final Map<String, ResourceAvailabilityState> resourceStateByKey;
+    private final Map<String, Resource> resourceByKey;
     private final Object resourcesLock;
     @Autowired
     private Configuration configuration;
@@ -50,67 +43,46 @@ public class ResourceManagementService {
     private BasicInputOutputService basicInputOutputService;
 
     public ResourceManagementService() {
-        resourceStateByKey = new LinkedHashMap<>();
+        resourceByKey = new LinkedHashMap<>();
         resourcesLock = new Object();
     }
 
-    public List<ResourceMetaSummaryCrate> getResourceSummaryList() {
+    public List<Resource> getAllResource() {
         synchronized (resourcesLock) {
-            return resourceStateByKey
+            return resourceByKey
                     .values()
                     .stream()
-                    .map(ResourceAvailabilityState::getSummary)
-                    .filter(Optional::isPresent)
-                    .map(Optional::get)
                     .collect(Collectors.toList());
         }
     }
 
-    public ResourceMetaDetailCrate getResourceDetail(final String key) throws ResourceNotFoundException {
+    public List<Resource> getUnfinishedResources() {
         synchronized (resourcesLock) {
-            final ResourceAvailabilityState state = resourceStateByKey.get(key);
-
-            if (state == null) {
-                throw new ResourceNotFoundException(key);
-            }
-
-            final Optional<ResourceMetaSummaryCrate> summaryOption = state.getSummary();
-
-            if (!summaryOption.isPresent()) {
-                throw new ResourceNotFoundException(key);
-            }
-
-            final ResourceMetaSummaryCrate summary = summaryOption.get();
-            final ResourceMetaDetailCrate result = new ResourceMetaDetailCrate();
-            result.setKey(summary.getKey());
-            result.setName(summary.getName());
-            result.setFileSize(summary.getFileSize());
-            result.setChunkSize(summary.getChunkSize());
-            result.setBitmap(state.getAvailabilityBitmap());
-            result.setSwarm(state.getAllSeeders());
-            return result;
+            return resourceByKey
+                    .values()
+                    .stream()
+                    .filter(Resource::isIncomplete)
+                    .collect(Collectors.toList());
         }
     }
 
-    public ChunkCrate getResourceChunk(final String key, final int chunkIndex) throws ResourceNotFoundException, ChunkNotFoundException, ErrorReadingChunkException {
+    public Optional<Resource> getResource(final String key) {
         synchronized (resourcesLock) {
-            final ResourceAvailabilityState state = resourceStateByKey.get(key);
+            return Optional.ofNullable(resourceByKey.get(key));
+        }
+    }
+
+    public Optional<byte[]> getResourceChunk(final String key, final int chunkIndex) throws ResourceNotFoundException, ChunkNotFoundException, ErrorReadingChunkException {
+        synchronized (resourcesLock) {
+            final Resource state = resourceByKey.get(key);
 
             if (state == null) {
-                throw new ResourceNotFoundException(key);
-            }
-
-            final Optional<ResourceMetaSummaryCrate> summaryOption = state.getSummary();
-
-            if (!summaryOption.isPresent()) {
                 throw new ResourceNotFoundException(key);
             }
 
             if (!state.isChunkAvailable(chunkIndex)) {
                 throw new ChunkNotFoundException(key, chunkIndex);
             }
-
-            final ResourceMetaSummaryCrate summary = summaryOption.get();
 
             final Optional<Path> backingFileOption = state.getBackingFile();
 
@@ -119,17 +91,15 @@ public class ResourceManagementService {
             }
 
             final Path backingFile = backingFileOption.get();
+            final int chunkSize = state.getChunkSize();
+            final long backingFileSize = state.getFileSize();
+            final byte[] data = basicInputOutputService.readBinaryChunk(backingFile, backingFileSize, chunkIndex, chunkSize);
 
-            final int chunkSize = summary.getChunkSize();
-            final byte[] data = basicInputOutputService.readBinaryChunk(backingFile, chunkIndex, chunkSize);
-
-            final ChunkCrate result = new ChunkCrate();
-            result.setData(data);
-            return result;
+            return Optional.of(data);
         }
     }
 
-    public ResourceAvailabilityState newSeedResource(final InfoForSeedingCrate infoForSeeding) throws CannotSeedException {
+    public Resource newSeedResource(final InfoForSeedingCrate infoForSeeding) throws CannotSeedException {
         final Path sourcePath;
 
         try {
@@ -148,46 +118,21 @@ public class ResourceManagementService {
 
         synchronized (resourcesLock) {
             final String key = generateHash(sourcePath);
-            final ResourceAvailabilityState resource = new ResourceAvailabilityState(key);
-            resource.fillAvailabilityBitmap();
-            final ResourceMetaSummaryCrate summary = new ResourceMetaSummaryCrate();
-            summary.setKey(key);
-            summary.setName(sourcePath.getFileName().toString());
-            summary.setFileSize(getTotalSize(sourcePath));
-            summary.setChunkSize(DEFAULT_CHUNK_SIZE);
-            resource.updateAfterInitialSeeding(summary, sourcePath);
-            resourceStateByKey.put(key, resource);
+            final Resource resource = new Resource(key);
+            resource.onSeeding(sourcePath, getTotalSize(sourcePath));
+            resourceByKey.put(key, resource);
             return resource;
         }
     }
 
-    public ResourceAvailabilityState newLeechResource(final InfoForLeechingCrate infoForLeeching) throws CannotLeechException {
+    public Resource newLeechResource(final InfoForLeechingCrate infoForLeeching) throws CannotLeechException {
         synchronized (resourcesLock) {
             final String key = infoForLeeching.getResourceKey();
-
-            try {
-                Files.createDirectories(configuration.getOutputDirectory());
-            } catch (final IOException e) {
-                throw new CannotLeechException(e);
-            }
-
-            final ResourceAvailabilityState resource = new ResourceAvailabilityState(key);
-            resourceStateByKey.put(key, resource);
+            final Resource resource = new Resource(key);
+            resource.onLeeching(infoForLeeching.getSeeders());
+            resourceByKey.put(key, resource);
             return resource;
         }
-    }
-
-    public ResourceAvailabilityState updateAfterInitialDownload(final String key, final ResourceMetaDetailCrate detail, final Set<PeerCrate> seeders, final PeerCrate seeder) {
-        // TODO check availability, maybe rename
-        final ResourceAvailabilityState resource = resourceStateByKey.get(key);
-        resource.updateAfterInitialDownload(detail);
-        for (PeerCrate peer : detail.getSwarm()) {
-            final Bitmap emptyBitmap = new Bitmap(detail.getChunkCount());
-            emptyBitmap.markAllUnavailable();
-            resource.updatePeerAvailability(peer, emptyBitmap);
-        }
-        resource.updatePeerAvailability(seeder, new Bitmap(detail.getBitmap()));
-        return resource;
     }
 
     private long getTotalSize(final Path path) throws CannotSeedException {
