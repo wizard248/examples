@@ -8,12 +8,19 @@ import cz.voho.shitorrent.model.internal.Configuration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpRequest;
+import org.springframework.http.client.ClientHttpRequestExecution;
+import org.springframework.http.client.ClientHttpRequestInterceptor;
+import org.springframework.http.client.ClientHttpResponse;
 import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
 
 import javax.annotation.PostConstruct;
+import java.io.IOException;
+import java.util.Arrays;
 
 /**
  * Created by vojta on 18/01/16.
@@ -47,7 +54,18 @@ public class OtherPeerClientService {
         log.info("Downloading {} from {}...", type.getName(), url);
 
         try {
-            return new RestTemplate(httpRequestFactory).getForObject(url, type);
+            final RestTemplate restTemplate = new RestTemplate(httpRequestFactory);
+            restTemplate.setInterceptors(Arrays.asList(new ClientHttpRequestInterceptor() {
+                @Override
+                public ClientHttpResponse intercept(final HttpRequest request, final byte[] body, final ClientHttpRequestExecution execution) throws IOException {
+                    final PeerCrate localPeer = configuration.getLocalPeer();
+                    final HttpHeaders headers = request.getHeaders();
+                    headers.add(Configuration.CUSTOM_HEADER_LEECHER_HOST, localPeer.getHost());
+                    headers.add(Configuration.CUSTOM_HEADER_LEECHER_PORT, String.valueOf(localPeer.getPort()));
+                    return execution.execute(request, body);
+                }
+            }));
+            return restTemplate.getForObject(url, type);
         } catch (RestClientException e) {
             throw new NoPeerConnectionException(url, e);
         }
@@ -70,5 +88,9 @@ public class OtherPeerClientService {
                 key,
                 chunkIndex
         );
+    }
+
+    public void markPeerAsNonResponsive(final PeerCrate peerCrate) {
+        // TODO
     }
 }

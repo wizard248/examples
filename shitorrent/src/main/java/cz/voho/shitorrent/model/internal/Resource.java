@@ -10,6 +10,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.BiFunction;
 import java.util.stream.Collectors;
 
 /**
@@ -29,15 +30,13 @@ public class Resource {
     // OPERATIONS
     // ==========
 
-    public void onInitialDownloadCompleted(final ResourceMetaDetailCrate detail, final Path targetPath) {
+    public void initializeForLeeching(final ResourceMetaDetailCrate detail, final Path targetPath) {
         this.progress = Optional.of(new ResourceProgress(
                 detail.getName(),
                 detail.getFileSize(),
                 detail.getChunkSize(),
                 targetPath
         ));
-
-        addSeedersWithUnknownAvailability(detail.getSwarm());
     }
 
     public void initializeForSeeding(final Path sourcePath, final long fileSize) {
@@ -52,19 +51,28 @@ public class Resource {
     }
 
     public void initializeForLeeching(final List<PeerCrate> seeders) {
-        addSeedersWithUnknownAvailability(seeders);
+        mergeToSwarmWithUnknownAvailability(seeders);
     }
 
-    private void addSeedersWithUnknownAvailability(final List<PeerCrate> seeders) {
+    public void mergeToSwarmWithUnknownAvailability(final List<PeerCrate> seeders) {
         seeders.forEach(peer -> mergeToSwarm(peer, Optional.empty()));
+    }
+
+    private void mergeToSwarm(final PeerCrate seeder, final Optional<Bitmap> bitmap) {
+        this.swarm.merge(seeder, bitmap, new BiFunction<Optional<Bitmap>, Optional<Bitmap>, Optional<Bitmap>>() {
+            @Override
+            public Optional<Bitmap> apply(final Optional<Bitmap> oldValue, final Optional<Bitmap> newValue) {
+                if (!newValue.isPresent()) {
+                    return oldValue;
+                } else {
+                    return newValue;
+                }
+            }
+        });
     }
 
     public void updateSeederAvailability(final PeerCrate seeder, final Bitmap bitmap) {
         mergeToSwarm(seeder, Optional.of(bitmap));
-    }
-
-    private void mergeToSwarm(final PeerCrate seeder, final Optional<Bitmap> bitmap) {
-        this.swarm.put(seeder, bitmap);
     }
 
     public void markChunkDownloading(final int chunkIndex) {

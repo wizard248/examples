@@ -13,6 +13,9 @@ import java.nio.file.Paths;
  * Created by vojta on 18/01/16.
  */
 public class Configuration {
+    public static final String CUSTOM_HEADER_LEECHER_HOST = "X-LEECHER-HOST";
+    public static final String CUSTOM_HEADER_LEECHER_PORT = "X-LEECHER-PORT";
+
     private String localHost;
     private int localPort;
 

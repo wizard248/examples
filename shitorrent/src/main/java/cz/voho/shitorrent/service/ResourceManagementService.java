@@ -63,6 +63,17 @@ public class ResourceManagementService {
         }
     }
 
+    public List<Resource> getUnfinishedInitializedResources() {
+        synchronized (resourcesLock) {
+            return resourceByKey
+                    .values()
+                    .stream()
+                    .filter(Resource::isIncomplete)
+                    .filter(Resource::isInitialized)
+                    .collect(Collectors.toList());
+        }
+    }
+
     public Optional<Resource> getResource(final String key) {
         synchronized (resourcesLock) {
             return Optional.ofNullable(resourceByKey.get(key));

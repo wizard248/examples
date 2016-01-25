@@ -29,7 +29,7 @@ public class WorkerExecutingService {
     @PostConstruct
     public void startWorkers() {
         for (int i = 0; i < configuration.getMaxNumberOfConcurrentSwarmUpdaters(); i++) {
-            new SwarmUpdatingWorker(resourceManagementService, otherPeerClientService).runInNewThread();
+            new SwarmUpdatingWorker(configuration, resourceManagementService, otherPeerClientService).runInNewThread();
             log.info("SwarmUpdatingWorker started.");
         }
 

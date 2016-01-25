@@ -4,8 +4,6 @@ import cz.voho.shitorrent.exception.ErrorWritingChunkException;
 import cz.voho.shitorrent.exception.NoPeerConnectionException;
 import cz.voho.shitorrent.model.external.ChunkCrate;
 import cz.voho.shitorrent.model.external.PeerCrate;
-import cz.voho.shitorrent.model.external.ResourceMetaDetailCrate;
-import cz.voho.shitorrent.model.internal.Bitmap;
 import cz.voho.shitorrent.model.internal.Configuration;
 import cz.voho.shitorrent.model.internal.Resource;
 import cz.voho.shitorrent.service.BasicInputOutputService;
@@ -39,7 +37,7 @@ public class ChunkDownloadingWorker implements Worker {
     @Override
     public void run() {
         while (true) {
-            final Optional<Resource> unfinishedResource = selectUnfinishedResource();
+            final Optional<Resource> unfinishedResource = selectUnfinishedInitializedResource();
 
             if (!unfinishedResource.isPresent()) {
                 log.warn("No unfinished resource.");
@@ -47,79 +45,48 @@ public class ChunkDownloadingWorker implements Worker {
                 continue;
             }
 
-            if (!unfinishedResource.get().isInitialized()) {
-                final Optional<PeerCrate> feasiblePeer = selectFeasiblePeer(unfinishedResource.get());
+            final Optional<Integer> unfinishedChunkIndex = selectUnfinishedChunk(unfinishedResource.get());
 
-                if (!feasiblePeer.isPresent()) {
-                    log.warn("No feasible peer.");
-                    sleepALittle();
-                    continue;
-                }
+            if (!unfinishedChunkIndex.isPresent()) {
+                log.warn("No unfinished chunk.");
+                sleepALittle();
+                continue;
+            }
 
-                try {
-                    initialize(unfinishedResource.get(), feasiblePeer.get());
-                } catch (NoPeerConnectionException e) {
-                    log.warn("Error while downloading detail.");
-                }
-            } else {
-                final Optional<Integer> unfinishedChunkIndex = selectUnfinishedChunk(unfinishedResource.get());
+            final Optional<PeerCrate> feasiblePeer = selectFeasiblePeer(unfinishedResource.get(), unfinishedChunkIndex.get());
 
-                if (!unfinishedChunkIndex.isPresent()) {
-                    log.warn("No unfinished chunk.");
-                    sleepALittle();
-                    continue;
-                }
+            if (!feasiblePeer.isPresent()) {
+                log.warn("No feasible peer.");
+                sleepALittle();
+                continue;
+            }
 
-                try {
-                    final Optional<PeerCrate> feasiblePeer = selectFeasiblePeer(unfinishedResource.get(), unfinishedChunkIndex.get());
-
-                    if (!feasiblePeer.isPresent()) {
-                        log.warn("No feasible peer.");
-                        sleepALittle();
-                        continue;
-                    }
-
-                    unfinishedResource.get().markChunkDownloading(unfinishedChunkIndex.get());
-                    downloadChunk(unfinishedResource.get(), unfinishedChunkIndex.get(), feasiblePeer.get());
-                    unfinishedResource.get().markChunkAvailable(unfinishedChunkIndex.get());
-                } catch (final NoPeerConnectionException e) {
-                    log.warn("Error while downloading chunk.", e);
-                } catch (final ErrorWritingChunkException e) {
-                    log.warn("Error while writing chunk.", e);
-                } finally {
-                    unfinishedResource.get().markChunkNotDownloading(unfinishedChunkIndex.get());
-                }
+            try {
+                unfinishedResource.get().markChunkDownloading(unfinishedChunkIndex.get());
+                downloadChunk(unfinishedResource.get(), unfinishedChunkIndex.get(), feasiblePeer.get());
+                unfinishedResource.get().markChunkAvailable(unfinishedChunkIndex.get());
+            } catch (final NoPeerConnectionException e) {
+                log.warn("Error while downloading chunk.", e);
+                otherPeerClientService.markPeerAsNonResponsive(feasiblePeer.get());
+            } catch (final ErrorWritingChunkException e) {
+                log.warn("Error while writing chunk.", e);
+            } finally {
+                unfinishedResource.get().markChunkNotDownloading(unfinishedChunkIndex.get());
             }
         }
     }
 
-    private Optional<Resource> selectUnfinishedResource() {
-        return resourceManagementService.getUnfinishedResources().stream().findFirst();
+    private Optional<Resource> selectUnfinishedInitializedResource() {
+        return resourceManagementService.getUnfinishedInitializedResources().stream().findFirst();
     }
 
     private Optional<Integer> selectUnfinishedChunk(final Resource resource) {
         return resource.selectUnfinishedChunk();
     }
 
-    private Optional<PeerCrate> selectFeasiblePeer(final Resource resource) {
-        final Set<PeerCrate> peers = resource.getPeers();
-        return peers.stream().findAny();
-    }
-
     private Optional<PeerCrate> selectFeasiblePeer(final Resource resource, final int chunkIndex) {
         final Set<PeerCrate> peers = resource.getPeersWithChunk(chunkIndex);
         return peers.stream().findAny();
-    }
-
-    private void initialize(final Resource resource, final PeerCrate sourcePeer) throws NoPeerConnectionException {
-        log.info("Starting initial download of {} from {}...", resource.getKey(), sourcePeer);
-
-        ResourceMetaDetailCrate detail = otherPeerClientService.downloadResourceDetail(sourcePeer, resource.getKey());
-        Path output = configuration.getOutputDirectory().resolve(detail.getName());
-        resource.onInitialDownloadCompleted(detail, output);
-        resource.updateSeederAvailability(sourcePeer, new Bitmap(detail.getBitmap()));
-
-        log.info("Initial download of {} from {} completed.", resource.getKey(), sourcePeer);
     }
 
     private void downloadChunk(final Resource resource, final int chunkIndex, final PeerCrate sourcePeer) throws NoPeerConnectionException, ErrorWritingChunkException {

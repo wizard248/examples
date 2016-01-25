@@ -20,6 +20,7 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
 
 import javax.annotation.PostConstruct;
+import javax.servlet.http.HttpServletRequest;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
@@ -93,8 +94,10 @@ public class FrontController {
      * @throws CannotLeechException if there is an error while leeching
      */
     @RequestMapping(method = RequestMethod.POST, value = "/leech")
-    public void leech(@RequestBody final InfoForLeechingCrate infoForLeechingCrate) throws CannotLeechException {
+    public void leech(@RequestBody final InfoForLeechingCrate infoForLeechingCrate, HttpServletRequest request) throws CannotLeechException {
         Objects.requireNonNull(infoForLeechingCrate);
+        System.out.println("leeching host: " + request.getHeader(Configuration.CUSTOM_HEADER_LEECHER_HOST));
+        System.out.println("leeching port: " + request.getHeader(Configuration.CUSTOM_HEADER_LEECHER_PORT));
         frontService.leech(infoForLeechingCrate);
     }
 
