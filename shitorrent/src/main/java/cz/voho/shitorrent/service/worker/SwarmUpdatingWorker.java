@@ -1,6 +1,5 @@
 package cz.voho.shitorrent.service.worker;
 
-import cz.voho.shitorrent.exception.NoPeerConnectionException;
 import cz.voho.shitorrent.model.external.PeerCrate;
 import cz.voho.shitorrent.model.external.ResourceMetaDetailCrate;
 import cz.voho.shitorrent.model.internal.Bitmap;
@@ -67,7 +66,7 @@ public class SwarmUpdatingWorker implements Worker {
         return peers.stream().findAny();
     }
 
-    private void updateSwarm(final Resource resource, final PeerCrate sourcePeer) throws NoPeerConnectionException {
+    private void updateSwarm(final Resource resource, final PeerCrate sourcePeer) {
         log.info("Starting swarm-peer update of {} from {}...", resource.getKey(), sourcePeer);
 
         ResourceMetaDetailCrate detail = otherPeerClientService.downloadResourceDetail(sourcePeer, resource.getKey());

@@ -10,12 +10,14 @@ import cz.voho.shitorrent.model.external.InfoForLeechingCrate;
 import cz.voho.shitorrent.model.external.InfoForSeedingCrate;
 import cz.voho.shitorrent.model.external.ResourceMetaDetailCrate;
 import cz.voho.shitorrent.model.external.ResourceMetaSummaryCrate;
+import cz.voho.shitorrent.model.internal.Configuration;
 import cz.voho.shitorrent.model.internal.Resource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import javax.servlet.http.HttpServletRequest;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -28,6 +30,8 @@ public class FrontService {
     private ResourceManagementService resourceManagementService;
     @Autowired
     private WorkerExecutingService workerService;
+    @Autowired
+    private OtherPeerClientService otherPeerClientService;
 
     public List<ResourceMetaSummaryCrate> getResources() {
         return resourceManagementService.getAllResource()
@@ -75,5 +79,14 @@ public class FrontService {
 
     public void seed(final InfoForSeedingCrate infoForSeeding) throws CannotSeedException {
         resourceManagementService.newSeedResource(infoForSeeding);
+    }
+
+    public void detectLeecher(final HttpServletRequest request) {
+        final String host = request.getHeader(Configuration.CUSTOM_HEADER_LEECHER_HOST);
+        final String port = request.getHeader(Configuration.CUSTOM_HEADER_LEECHER_PORT);
+
+        if (host != null && port != null) {
+            otherPeerClientService.markPeerAsCandidateSeeder(host, Integer.parseInt(port));
+        }
     }
 }

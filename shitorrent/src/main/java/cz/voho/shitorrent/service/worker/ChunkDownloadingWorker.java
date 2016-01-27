@@ -1,7 +1,6 @@
 package cz.voho.shitorrent.service.worker;
 
 import cz.voho.shitorrent.exception.ErrorWritingChunkException;
-import cz.voho.shitorrent.exception.NoPeerConnectionException;
 import cz.voho.shitorrent.model.external.ChunkCrate;
 import cz.voho.shitorrent.model.external.PeerCrate;
 import cz.voho.shitorrent.model.internal.Configuration;
@@ -89,7 +88,7 @@ public class ChunkDownloadingWorker implements Worker {
         return peers.stream().findAny();
     }
 
-    private void downloadChunk(final Resource resource, final int chunkIndex, final PeerCrate sourcePeer) throws NoPeerConnectionException, ErrorWritingChunkException {
+    private void downloadChunk(final Resource resource, final int chunkIndex, final PeerCrate sourcePeer) throws ErrorWritingChunkException {
         log.info("Starting download of chunk {} of {} from {}...", chunkIndex, resource.getKey(), sourcePeer);
 
         final ChunkCrate chunk = otherPeerClientService.downloadChunk(sourcePeer, resource.getKey(), chunkIndex);

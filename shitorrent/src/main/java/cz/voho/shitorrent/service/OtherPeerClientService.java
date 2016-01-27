@@ -1,6 +1,5 @@
 package cz.voho.shitorrent.service;
 
-import cz.voho.shitorrent.exception.NoPeerConnectionException;
 import cz.voho.shitorrent.model.external.ChunkCrate;
 import cz.voho.shitorrent.model.external.PeerCrate;
 import cz.voho.shitorrent.model.external.ResourceMetaDetailCrate;
@@ -9,18 +8,16 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpRequest;
-import org.springframework.http.client.ClientHttpRequestExecution;
-import org.springframework.http.client.ClientHttpRequestInterceptor;
-import org.springframework.http.client.ClientHttpResponse;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.HttpMessageConverterExtractor;
+import org.springframework.web.client.RequestCallback;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
 
 import javax.annotation.PostConstruct;
-import java.io.IOException;
-import java.util.Arrays;
+import java.util.Optional;
 
 /**
  * Created by vojta on 18/01/16.
@@ -38,36 +35,37 @@ public class OtherPeerClientService {
         httpRequestFactory = new SimpleClientHttpRequestFactory();
         httpRequestFactory.setConnectTimeout(configuration.getPeerConnectionTimeoutMs());
         httpRequestFactory.setReadTimeout(configuration.getPeerConnectionTimeoutMs());
+        httpRequestFactory.setBufferRequestBody(true);
+        httpRequestFactory.setOutputStreaming(false);
     }
 
-    public ResourceMetaDetailCrate downloadResourceDetail(final PeerCrate randomSeeder, final String key) throws NoPeerConnectionException {
-        String url = getUrlForGetResourceDetail(randomSeeder, key);
-        return httpGet(url, ResourceMetaDetailCrate.class);
+    public Optional<ResourceMetaDetailCrate> downloadResourceDetail(final PeerCrate randomSeeder, final String key) {
+        final String url = getUrlForGetResourceDetail(randomSeeder, key);
+        return httpGet(randomSeeder, url, ResourceMetaDetailCrate.class);
     }
 
-    public ChunkCrate downloadChunk(final PeerCrate randomSeeder, final String key, final int chunkIndex) throws NoPeerConnectionException {
-        String url = getUrlForGetChunk(randomSeeder, key, chunkIndex);
-        return httpGet(url, ChunkCrate.class);
+    public Optional<ChunkCrate> downloadChunk(final PeerCrate randomSeeder, final String key, final int chunkIndex) {
+        final String url = getUrlForGetChunk(randomSeeder, key, chunkIndex);
+        return httpGet(randomSeeder, url, ChunkCrate.class);
     }
 
-    private <T> T httpGet(String url, Class<T> type) throws NoPeerConnectionException {
+    private <T> Optional<T> httpGet(final PeerCrate peerCrate, final String url, final Class<T> type) {
         log.info("Downloading {} from {}...", type.getName(), url);
 
         try {
-            final RestTemplate restTemplate = new RestTemplate(httpRequestFactory);
-            restTemplate.setInterceptors(Arrays.asList(new ClientHttpRequestInterceptor() {
-                @Override
-                public ClientHttpResponse intercept(final HttpRequest request, final byte[] body, final ClientHttpRequestExecution execution) throws IOException {
-                    final PeerCrate localPeer = configuration.getLocalPeer();
-                    final HttpHeaders headers = request.getHeaders();
-                    headers.add(Configuration.CUSTOM_HEADER_LEECHER_HOST, localPeer.getHost());
-                    headers.add(Configuration.CUSTOM_HEADER_LEECHER_PORT, String.valueOf(localPeer.getPort()));
-                    return execution.execute(request, body);
-                }
-            }));
-            return restTemplate.getForObject(url, type);
-        } catch (RestClientException e) {
-            throw new NoPeerConnectionException(url, e);
+            final RequestCallback rc = request -> {
+                final PeerCrate localPeer = configuration.getLocalPeer();
+                final HttpHeaders headers = request.getHeaders();
+                headers.set(Configuration.CUSTOM_HEADER_LEECHER_HOST, localPeer.getHost());
+                headers.set(Configuration.CUSTOM_HEADER_LEECHER_PORT, String.valueOf(localPeer.getPort()));
+            };
+            final RestTemplate rest = new RestTemplate(httpRequestFactory);
+            final HttpMessageConverterExtractor<T> re = new HttpMessageConverterExtractor<T>(type, rest.getMessageConverters());
+            final T object = rest.execute(url, HttpMethod.GET, rc, re);
+            return Optional.of(object);
+        } catch (final RestClientException e) {
+            markPeerAsNonResponsive(peerCrate);
+            return Optional.empty();
         }
     }
 
@@ -92,5 +90,14 @@ public class OtherPeerClientService {
 
     public void markPeerAsNonResponsive(final PeerCrate peerCrate) {
         // TODO
+        System.out.println("PEER NOT RESP: " + peerCrate);
+    }
+
+    public void markPeerAsCandidateSeeder(final String host, final int port) {
+        // TODO
+        PeerCrate peerCrate = new PeerCrate();
+        peerCrate.setHost(host);
+        peerCrate.setPort(port);
+        System.out.println("PEER POSSIBLE: " + peerCrate);
     }
 }

@@ -45,7 +45,8 @@ public class FrontController {
      * @return list of resources
      */
     @RequestMapping(method = RequestMethod.GET, value = "/resources")
-    public List<ResourceMetaSummaryCrate> getResources() {
+    public List<ResourceMetaSummaryCrate> getResources(final HttpServletRequest request) {
+        frontService.detectLeecher(request);
         return frontService.getResources();
     }
 
@@ -65,8 +66,9 @@ public class FrontController {
      * @throws ResourceNotFoundException if resource is not found
      */
     @RequestMapping(method = RequestMethod.GET, value = "/resources/{key}")
-    public ResourceMetaDetailCrate getResourceDetail(@PathVariable final String key) throws ResourceNotFoundException {
+    public ResourceMetaDetailCrate getResourceDetail(@PathVariable final String key, final HttpServletRequest request) throws ResourceNotFoundException {
         Objects.requireNonNull(key);
+        frontService.detectLeecher(request);
         return frontService.getResourceDetail(key);
     }
 
@@ -81,9 +83,10 @@ public class FrontController {
      * @throws ErrorReadingChunkException if chunk cannot be read
      */
     @RequestMapping(method = RequestMethod.GET, value = "/resources/{key}/{index}")
-    public ChunkCrate getResourceChunk(@PathVariable final String key, @PathVariable final Integer index) throws ResourceNotFoundException, ChunkNotFoundException, ErrorReadingChunkException {
+    public ChunkCrate getResourceChunk(@PathVariable final String key, @PathVariable final Integer index, final HttpServletRequest request) throws ResourceNotFoundException, ChunkNotFoundException, ErrorReadingChunkException {
         Objects.requireNonNull(key);
         Objects.requireNonNull(index);
+        frontService.detectLeecher(request);
         return frontService.getResourceChunk(key, index);
     }
 
@@ -94,10 +97,9 @@ public class FrontController {
      * @throws CannotLeechException if there is an error while leeching
      */
     @RequestMapping(method = RequestMethod.POST, value = "/leech")
-    public void leech(@RequestBody final InfoForLeechingCrate infoForLeechingCrate, HttpServletRequest request) throws CannotLeechException {
+    public void leech(@RequestBody final InfoForLeechingCrate infoForLeechingCrate, final HttpServletRequest request) throws CannotLeechException {
         Objects.requireNonNull(infoForLeechingCrate);
-        System.out.println("leeching host: " + request.getHeader(Configuration.CUSTOM_HEADER_LEECHER_HOST));
-        System.out.println("leeching port: " + request.getHeader(Configuration.CUSTOM_HEADER_LEECHER_PORT));
+        frontService.detectLeecher(request);
         frontService.leech(infoForLeechingCrate);
     }
 
@@ -108,8 +110,9 @@ public class FrontController {
      * @throws CannotSeedException if there is an error while seeding
      */
     @RequestMapping(method = RequestMethod.POST, value = "/seed")
-    public void seed(@RequestBody final InfoForSeedingCrate infoForSeeding) throws CannotSeedException {
+    public void seed(@RequestBody final InfoForSeedingCrate infoForSeeding, final HttpServletRequest request) throws CannotSeedException {
         Objects.requireNonNull(infoForSeeding);
+        frontService.detectLeecher(request);
         frontService.seed(infoForSeeding);
     }
 
@@ -126,6 +129,6 @@ public class FrontController {
     private void seedX(final Path path) throws CannotSeedException {
         final InfoForSeedingCrate info = new InfoForSeedingCrate();
         info.setSourcePath(path.toAbsolutePath().toString());
-        seed(info);
+        frontService.seed(info);
     }
 }
