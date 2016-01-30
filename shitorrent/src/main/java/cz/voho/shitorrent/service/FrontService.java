@@ -4,6 +4,7 @@ import cz.voho.shitorrent.exception.CannotLeechException;
 import cz.voho.shitorrent.exception.CannotSeedException;
 import cz.voho.shitorrent.exception.ChunkNotFoundException;
 import cz.voho.shitorrent.exception.ErrorReadingChunkException;
+import cz.voho.shitorrent.exception.ResourceAlreadyPresentException;
 import cz.voho.shitorrent.exception.ResourceNotFoundException;
 import cz.voho.shitorrent.model.external.ChunkCrate;
 import cz.voho.shitorrent.model.external.InfoForLeechingCrate;
@@ -20,6 +21,7 @@ import org.springframework.stereotype.Service;
 import javax.servlet.http.HttpServletRequest;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
@@ -34,7 +36,7 @@ public class FrontService {
     private OtherPeerClientService otherPeerClientService;
 
     public List<ResourceMetaSummaryCrate> getResources() {
-        return resourceManagementService.getAllResource()
+        return resourceManagementService.getInitializedResources()
                 .stream()
                 .map(resource -> {
                     ResourceMetaSummaryCrate result = new ResourceMetaSummaryCrate();
@@ -56,7 +58,7 @@ public class FrontService {
                     result.setName(resource.getName());
                     result.setFileSize(resource.getFileSize());
                     result.setChunkSize(resource.getChunkSize());
-                    result.setBitmap(resource.getAvailabilityBitmap().toString());
+                    result.setBitmap(resource.getLocalAvailability().toString());
                     result.setSwarm(new ArrayList<>(resource.getPeers()));
                     return result;
                 })
@@ -73,20 +75,20 @@ public class FrontService {
                 .orElseThrow(() -> new ChunkNotFoundException(key, chunkIndex));
     }
 
-    public void leech(final InfoForLeechingCrate infoForLeechingCrate) throws CannotLeechException {
+    public void leech(final InfoForLeechingCrate infoForLeechingCrate) throws CannotLeechException, ResourceAlreadyPresentException {
         resourceManagementService.newLeechResource(infoForLeechingCrate);
     }
 
-    public void seed(final InfoForSeedingCrate infoForSeeding) throws CannotSeedException {
+    public void seed(final InfoForSeedingCrate infoForSeeding) throws CannotSeedException, ResourceAlreadyPresentException {
         resourceManagementService.newSeedResource(infoForSeeding);
     }
 
-    public void detectLeecher(final HttpServletRequest request) {
+    public void detectLeecher(final HttpServletRequest request, Optional<String> resourceKey) {
         final String host = request.getHeader(Configuration.CUSTOM_HEADER_LEECHER_HOST);
         final String port = request.getHeader(Configuration.CUSTOM_HEADER_LEECHER_PORT);
 
         if (host != null && port != null) {
-            otherPeerClientService.markPeerAsCandidateSeeder(host, Integer.parseInt(port));
+            otherPeerClientService.markPeerAsCandidateSeeder(host, Integer.parseInt(port), resourceKey);
         }
     }
 }

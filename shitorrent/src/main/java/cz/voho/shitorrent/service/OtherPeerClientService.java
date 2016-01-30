@@ -4,6 +4,7 @@ import cz.voho.shitorrent.model.external.ChunkCrate;
 import cz.voho.shitorrent.model.external.PeerCrate;
 import cz.voho.shitorrent.model.external.ResourceMetaDetailCrate;
 import cz.voho.shitorrent.model.internal.Configuration;
+import cz.voho.shitorrent.model.internal.Resource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -17,6 +18,7 @@ import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
 
 import javax.annotation.PostConstruct;
+import java.util.Arrays;
 import java.util.Optional;
 
 /**
@@ -28,6 +30,8 @@ public class OtherPeerClientService {
 
     @Autowired
     private Configuration configuration;
+    @Autowired
+    private ResourceManagementService resourceManagementService;
     private SimpleClientHttpRequestFactory httpRequestFactory;
 
     @PostConstruct
@@ -53,6 +57,7 @@ public class OtherPeerClientService {
         log.info("Downloading {} from {}...", type.getName(), url);
 
         try {
+            long start = System.currentTimeMillis();
             final RequestCallback rc = request -> {
                 final PeerCrate localPeer = configuration.getLocalPeer();
                 final HttpHeaders headers = request.getHeaders();
@@ -62,11 +67,22 @@ public class OtherPeerClientService {
             final RestTemplate rest = new RestTemplate(httpRequestFactory);
             final HttpMessageConverterExtractor<T> re = new HttpMessageConverterExtractor<T>(type, rest.getMessageConverters());
             final T object = rest.execute(url, HttpMethod.GET, rc, re);
+            long end = System.currentTimeMillis();
+            updatePeerLatency(peerCrate, end - start);
             return Optional.of(object);
         } catch (final RestClientException e) {
+            log.warn("Not responding: " + peerCrate, e);
             markPeerAsNonResponsive(peerCrate);
             return Optional.empty();
         }
+    }
+
+    private String getUrlForGetResourceSummary(final PeerCrate peerCrate) {
+        return String.format(
+                "http://%s:%d/resources",
+                peerCrate.getHost(),
+                peerCrate.getPort()
+        );
     }
 
     private String getUrlForGetResourceDetail(final PeerCrate peerCrate, final String key) {
@@ -93,11 +109,19 @@ public class OtherPeerClientService {
         System.out.println("PEER NOT RESP: " + peerCrate);
     }
 
-    public void markPeerAsCandidateSeeder(final String host, final int port) {
+    public void markPeerAsCandidateSeeder(final String host, final int port, final Optional<String> resourceKey) {
         // TODO
-        PeerCrate peerCrate = new PeerCrate();
-        peerCrate.setHost(host);
-        peerCrate.setPort(port);
-        System.out.println("PEER POSSIBLE: " + peerCrate);
+        PeerCrate peerCrate = new PeerCrate(host, port);
+        if (resourceKey.isPresent()) {
+            Optional<Resource> resource = resourceManagementService.getResource(resourceKey.get());
+            if (resource.isPresent()) {
+                System.out.println("PEER POSSIBLE: " + peerCrate);
+                resource.get().mergeToSwarmWithUnknownAvailability(Arrays.asList(peerCrate));
+            }
+        }
+    }
+
+    private void updatePeerLatency(final PeerCrate peerCrate, final long latencyMs) {
+        System.out.println("PEER LATENCY: " + peerCrate + " = " + latencyMs);
     }
 }

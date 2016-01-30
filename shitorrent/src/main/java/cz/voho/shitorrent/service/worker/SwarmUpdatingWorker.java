@@ -13,6 +13,7 @@ import org.slf4j.LoggerFactory;
 import java.nio.file.Path;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * Created by vojta on 21/01/16.
@@ -23,6 +24,7 @@ public class SwarmUpdatingWorker implements Worker {
     private final Configuration configuration;
     private final ResourceManagementService resourceManagementService;
     private final OtherPeerClientService otherPeerClientService;
+    private final AtomicBoolean live = new AtomicBoolean(true);
 
     public SwarmUpdatingWorker(final Configuration configuration, final ResourceManagementService resourceManagementService, final OtherPeerClientService otherPeerClientService) {
         this.configuration = configuration;
@@ -32,12 +34,12 @@ public class SwarmUpdatingWorker implements Worker {
 
     @Override
     public void run() {
-        while (true) {
+        while (live.get()) {
             final Optional<Resource> unfinishedResource = selectUnfinishedResource();
 
             if (!unfinishedResource.isPresent()) {
                 log.warn("No unfinished resource.");
-                sleepALittle();
+                sleepForResourceChange();
                 continue;
             }
 
@@ -45,15 +47,11 @@ public class SwarmUpdatingWorker implements Worker {
 
             if (!feasiblePeer.isPresent()) {
                 log.warn("No feasible peer.");
-                sleepALittle();
+                sleepForSwarmChange();
                 continue;
             }
 
-            try {
-                updateSwarm(unfinishedResource.get(), feasiblePeer.get());
-            } catch (NoPeerConnectionException e) {
-                log.warn("Error while downloading detail.");
-            }
+            updateSeeders(unfinishedResource.get(), feasiblePeer.get());
         }
     }
 
@@ -66,23 +64,26 @@ public class SwarmUpdatingWorker implements Worker {
         return peers.stream().findAny();
     }
 
-    private void updateSwarm(final Resource resource, final PeerCrate sourcePeer) {
+    private void updateSeeders(final Resource resource, final PeerCrate sourcePeer) {
         log.info("Starting swarm-peer update of {} from {}...", resource.getKey(), sourcePeer);
 
-        ResourceMetaDetailCrate detail = otherPeerClientService.downloadResourceDetail(sourcePeer, resource.getKey());
+        Optional<ResourceMetaDetailCrate> detail = otherPeerClientService.downloadResourceDetail(sourcePeer, resource.getKey());
 
-        if (!resource.isInitialized()) {
-            Path output = configuration.getOutputDirectory().resolve(detail.getName());
-            resource.initializeForLeeching(detail, output);
+        if (detail.isPresent()) {
+            if (!resource.isInitialized()) {
+                Path output = configuration.getOutputDirectory().resolve(detail.get().getName());
+                resource.initializeForLeeching(detail.get(), output);
+            }
+
+            resource.mergeToSwarmWithUnknownAvailability(detail.get().getSwarm());
+            resource.updateSeederAvailability(sourcePeer, new Bitmap(detail.get().getBitmap()));
         }
-
-        resource.mergeToSwarmWithUnknownAvailability(detail.getSwarm());
-        resource.updateSeederAvailability(sourcePeer, new Bitmap(detail.getBitmap()));
 
         log.info("Swarm-peer update of {} from {} completed.", resource.getKey(), sourcePeer);
     }
 
-    private void sleepALittle() {
-        sleep(3000);
+    @Override
+    public void stop() {
+        live.set(false);
     }
 }

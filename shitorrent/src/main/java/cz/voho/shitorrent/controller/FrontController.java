@@ -4,6 +4,7 @@ import cz.voho.shitorrent.exception.CannotLeechException;
 import cz.voho.shitorrent.exception.CannotSeedException;
 import cz.voho.shitorrent.exception.ChunkNotFoundException;
 import cz.voho.shitorrent.exception.ErrorReadingChunkException;
+import cz.voho.shitorrent.exception.ResourceAlreadyPresentException;
 import cz.voho.shitorrent.exception.ResourceNotFoundException;
 import cz.voho.shitorrent.model.external.ChunkCrate;
 import cz.voho.shitorrent.model.external.InfoForLeechingCrate;
@@ -25,6 +26,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 
 @RestController
 public class FrontController {
@@ -46,7 +48,7 @@ public class FrontController {
      */
     @RequestMapping(method = RequestMethod.GET, value = "/resources")
     public List<ResourceMetaSummaryCrate> getResources(final HttpServletRequest request) {
-        frontService.detectLeecher(request);
+        frontService.detectLeecher(request, Optional.empty());
         return frontService.getResources();
     }
 
@@ -68,7 +70,7 @@ public class FrontController {
     @RequestMapping(method = RequestMethod.GET, value = "/resources/{key}")
     public ResourceMetaDetailCrate getResourceDetail(@PathVariable final String key, final HttpServletRequest request) throws ResourceNotFoundException {
         Objects.requireNonNull(key);
-        frontService.detectLeecher(request);
+        frontService.detectLeecher(request, Optional.of(key));
         return frontService.getResourceDetail(key);
     }
 
@@ -86,7 +88,7 @@ public class FrontController {
     public ChunkCrate getResourceChunk(@PathVariable final String key, @PathVariable final Integer index, final HttpServletRequest request) throws ResourceNotFoundException, ChunkNotFoundException, ErrorReadingChunkException {
         Objects.requireNonNull(key);
         Objects.requireNonNull(index);
-        frontService.detectLeecher(request);
+        frontService.detectLeecher(request, Optional.of(key));
         return frontService.getResourceChunk(key, index);
     }
 
@@ -97,9 +99,9 @@ public class FrontController {
      * @throws CannotLeechException if there is an error while leeching
      */
     @RequestMapping(method = RequestMethod.POST, value = "/leech")
-    public void leech(@RequestBody final InfoForLeechingCrate infoForLeechingCrate, final HttpServletRequest request) throws CannotLeechException {
+    public void leech(@RequestBody final InfoForLeechingCrate infoForLeechingCrate, final HttpServletRequest request) throws CannotLeechException, ResourceAlreadyPresentException {
         Objects.requireNonNull(infoForLeechingCrate);
-        frontService.detectLeecher(request);
+        frontService.detectLeecher(request, Optional.empty());
         frontService.leech(infoForLeechingCrate);
     }
 
@@ -110,23 +112,23 @@ public class FrontController {
      * @throws CannotSeedException if there is an error while seeding
      */
     @RequestMapping(method = RequestMethod.POST, value = "/seed")
-    public void seed(@RequestBody final InfoForSeedingCrate infoForSeeding, final HttpServletRequest request) throws CannotSeedException {
+    public void seed(@RequestBody final InfoForSeedingCrate infoForSeeding, final HttpServletRequest request) throws CannotSeedException, ResourceAlreadyPresentException {
         Objects.requireNonNull(infoForSeeding);
-        frontService.detectLeecher(request);
+        frontService.detectLeecher(request, Optional.empty());
         frontService.seed(infoForSeeding);
     }
 
     // TODO: just for speeding up the dev
     @PostConstruct
-    public void makeSomeSeeding() throws CannotSeedException {
-        if (configuration.getLocalPort() == 7891) {
+    public void makeSomeSeeding() throws CannotSeedException, ResourceAlreadyPresentException {
+        if (configuration.getLocalPort() == 7892) {
             seedX(Paths.get("/Users/vojta/Downloads/XOrgSourcingService_ar.docx"));
             seedX(Paths.get("/Users/vojta/Downloads/LANDR-innovation.wav"));
             seedX(Paths.get("/Users/vojta/Downloads/112775__kyster__forest-ambience-with-beach-in-background.wav"));
         }
     }
 
-    private void seedX(final Path path) throws CannotSeedException {
+    private void seedX(final Path path) throws CannotSeedException, ResourceAlreadyPresentException {
         final InfoForSeedingCrate info = new InfoForSeedingCrate();
         info.setSourcePath(path.toAbsolutePath().toString());
         frontService.seed(info);

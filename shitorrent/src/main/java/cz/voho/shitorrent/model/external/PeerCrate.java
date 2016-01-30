@@ -9,6 +9,14 @@ public class PeerCrate {
     private String host;
     private int port;
 
+    public PeerCrate() {
+    }
+
+    public PeerCrate(final String host, final int port) {
+        this.host = host;
+        this.port = port;
+    }
+
     public String getHost() {
         return host;
     }
@@ -27,7 +35,7 @@ public class PeerCrate {
 
     @Override
     public int hashCode() {
-        return Objects.hash(host, port);
+        return Objects.hash(toString());
     }
 
     @Override
@@ -35,8 +43,7 @@ public class PeerCrate {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         final PeerCrate peerCrate = (PeerCrate) o;
-        return port == peerCrate.port &&
-                Objects.equals(host, peerCrate.host);
+        return Objects.equals(toString(), peerCrate.toString());
     }
 
     @Override

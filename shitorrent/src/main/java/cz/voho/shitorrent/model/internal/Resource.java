@@ -5,89 +5,83 @@ import cz.voho.shitorrent.model.external.PeerCrate;
 import cz.voho.shitorrent.model.external.ResourceMetaDetailCrate;
 
 import java.nio.file.Path;
-import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
+import java.util.Random;
 import java.util.Set;
-import java.util.function.BiFunction;
-import java.util.stream.Collectors;
 
 /**
  * Created by vojta on 21/01/16.
  */
 public class Resource {
     private final String key;
-    private final Map<PeerCrate, Optional<Bitmap>> swarm;
-    private Optional<ResourceProgress> progress;
+    private final PeerCrate localPeer;
+    private final Object lock;
+    private Optional<ResourceMetaData> progress;
+    private final ResourceAvailabilityOnPeers availability;
+    private final ResourceActiveDownloading downloading;
 
-    public Resource(final String key) {
+    public Resource(final String key, final PeerCrate localPeer) {
         this.key = key;
-        this.swarm = new LinkedHashMap<>();
+        this.localPeer = localPeer;
+        lock = new Object();
         this.progress = Optional.empty();
+        this.availability = new ResourceAvailabilityOnPeers();
+        this.downloading = new ResourceActiveDownloading();
     }
 
-    // OPERATIONS
     // ==========
 
     public void initializeForLeeching(final ResourceMetaDetailCrate detail, final Path targetPath) {
-        this.progress = Optional.of(new ResourceProgress(
-                detail.getName(),
-                detail.getFileSize(),
-                detail.getChunkSize(),
-                targetPath
-        ));
-    }
+        synchronized (lock) {
+            this.progress = Optional.of(new ResourceMetaData(
+                    detail.getName(),
+                    detail.getFileSize(),
+                    detail.getChunkSize(),
+                    targetPath
+            ));
 
-    public void initializeForSeeding(final Path sourcePath, final long fileSize) {
-        this.progress = Optional.of(new ResourceProgress(
-                sourcePath.getFileName().toString(),
-                fileSize,
-                4 * 1024,
-                sourcePath
-        ));
+            availability.mergeWithSeedersUnknownAvailability(detail.getSwarm());
 
-        this.progress.get().markAllChunksAvailable();
+            Bitmap bitmap = new Bitmap(this.progress.get().getNumChunks());
+            bitmap.markAllUnavailable();
+            availability.mergeSeederAvailability(localPeer, bitmap);
+        }
     }
 
     public void initializeForLeeching(final List<PeerCrate> seeders) {
-        mergeToSwarmWithUnknownAvailability(seeders);
+        synchronized (lock) {
+            this.getAvailability().mergeWithSeedersUnknownAvailability(seeders);
+        }
+    }
+
+    public void initializeForSeeding(final Path sourcePath, final long fileSize) {
+        synchronized (lock) {
+            this.progress = Optional.of(new ResourceMetaData(
+                    sourcePath.getFileName().toString(),
+                    fileSize,
+                    4 * 1024,
+                    sourcePath
+            ));
+
+            Bitmap bitmap = new Bitmap(this.progress.get().getNumChunks());
+            bitmap.markAllAvailable();
+            availability.mergeSeederAvailability(localPeer, bitmap);
+        }
     }
 
     public void mergeToSwarmWithUnknownAvailability(final List<PeerCrate> seeders) {
-        seeders.forEach(peer -> mergeToSwarm(peer, Optional.empty()));
-    }
-
-    private void mergeToSwarm(final PeerCrate seeder, final Optional<Bitmap> bitmap) {
-        this.swarm.merge(seeder, bitmap, new BiFunction<Optional<Bitmap>, Optional<Bitmap>, Optional<Bitmap>>() {
-            @Override
-            public Optional<Bitmap> apply(final Optional<Bitmap> oldValue, final Optional<Bitmap> newValue) {
-                if (!newValue.isPresent()) {
-                    return oldValue;
-                } else {
-                    return newValue;
-                }
-            }
-        });
+        synchronized (lock) {
+            getAvailability().mergeWithSeedersUnknownAvailability(seeders);
+        }
     }
 
     public void updateSeederAvailability(final PeerCrate seeder, final Bitmap bitmap) {
-        mergeToSwarm(seeder, Optional.of(bitmap));
+        synchronized (lock) {
+            getAvailability().mergeSeederAvailability(seeder, bitmap);
+        }
     }
 
-    public void markChunkDownloading(final int chunkIndex) {
-        getProgress().markChunkDownloading(chunkIndex);
-    }
-
-    public void markChunkNotDownloading(final int chunkIndex) {
-        getProgress().markChunkNotDownloading(chunkIndex);
-    }
-
-    public void markChunkAvailable(final int chunkIndex) {
-        getProgress().markChunkAvailable(chunkIndex);
-    }
-
-    // BASIC QUERIES
     // =============
 
     public String getKey() {
@@ -95,43 +89,81 @@ public class Resource {
     }
 
     public String getName() {
-        return getProgress().getName();
+        return getMetaData().getName();
     }
 
     public long getFileSize() {
-        return getProgress().getFileSize();
+        return getMetaData().getFileSize();
     }
 
     public int getChunkSize() {
-        return getProgress().getChunkSize();
+        return getMetaData().getChunkSize();
     }
 
-    // CHUNK QUERIES
-    // =============
+    public void markChunkAvailable(final int chunkIndex) {
+        synchronized (lock) {
+            getAvailability().markAvailable(localPeer, chunkIndex);
+        }
+    }
 
     public boolean isChunkAvailable(final int chunkIndex) {
-        return getProgress().isChunkAvailable(chunkIndex);
+        synchronized (lock) {
+            return getAvailability().isChunkAvailable(localPeer, chunkIndex);
+        }
     }
 
-    public Bitmap getAvailabilityBitmap() {
-        return getProgress().getAvailable();
+    public Bitmap getLocalAvailability() {
+        synchronized (lock) {
+            return getAvailability().getAvailabilityBitmap(localPeer);
+        }
     }
 
-    // PEERS QUERIES
+    public void updateSeederFullyAvailable(final PeerCrate localPeer) {
+        synchronized (lock) {
+            getAvailability().markAllAvailable(localPeer, getMetaData().getNumChunks());
+        }
+    }
+
     // =============
 
-    public Set<PeerCrate> getPeersWithChunk(final int chunkIndex) {
-        return swarm
-                .entrySet()
-                .stream()
-                .filter(e -> e.getValue().orElse(new Bitmap(0)).isAvailable(chunkIndex))
-                .map(Map.Entry::getKey)
-                .collect(Collectors.toSet());
+    public Optional<Integer> reserveUnavailableChunkForDownloading() {
+        Optional<Integer> result = Optional.empty();
+
+        synchronized (lock) {
+            Bitmap bitmap = getLocalAvailability();
+
+            if (!bitmap.isAllAvailable()) {
+                Random rand = new Random();
+                while (!result.isPresent()) {
+                    int r = rand.nextInt(bitmap.getSize());
+                    if (!isChunkAvailable(r) && !downloading.isDownloading(r)) {
+                        result = Optional.of(r);
+                    }
+                }
+            }
+
+            result.ifPresent(i -> downloading.markAsDownloading(i));
+        }
+
+        return result;
     }
 
+    public void markChunkAsNotDownloading(int index) {
+        synchronized (lock) {
+            downloading.markAsNotDownloading(index);
+        }
+    }
+
+    public Set<PeerCrate> getPeersWithChunk(final int chunkIndex) {
+        synchronized (lock) {
+            return getAvailability().getPeersWithChunk(chunkIndex);
+        }
+    }
 
     public boolean isComplete() {
-        return isInitialized() && getProgress().getAvailable().isAllAvailable();
+        synchronized (lock) {
+            return getAvailability().areAllChunksAvailable(localPeer);
+        }
     }
 
     public boolean isIncomplete() {
@@ -139,22 +171,31 @@ public class Resource {
     }
 
     public Set<PeerCrate> getPeers() {
-        return swarm.keySet();
+        synchronized (lock) {
+            return getAvailability().getAllPeers();
+        }
     }
 
     public Path getBackingFile() {
-        return getProgress().getBackingFile();
-    }
-
-    public Optional<Integer> selectUnfinishedChunk() {
-        return getProgress().selectUnfinishedChunk();
+        return getMetaData().getBackingFile();
     }
 
     public boolean isInitialized() {
-        return progress.isPresent();
+        synchronized (lock) {
+            return progress.isPresent();
+        }
     }
 
-    private ResourceProgress getProgress() {
-        return progress.orElseThrow(UsingUninitializedResourceException::new);
+    private ResourceMetaData getMetaData() {
+        synchronized (lock) {
+            return progress.orElseThrow(UsingUninitializedResourceException::new);
+        }
+    }
+
+    private ResourceAvailabilityOnPeers getAvailability() {
+        synchronized (lock) {
+            // TODO remove method
+            return availability;
+        }
     }
 }

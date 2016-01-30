@@ -4,9 +4,12 @@ import cz.voho.shitorrent.exception.CannotLeechException;
 import cz.voho.shitorrent.exception.CannotSeedException;
 import cz.voho.shitorrent.exception.ChunkNotFoundException;
 import cz.voho.shitorrent.exception.ErrorReadingChunkException;
+import cz.voho.shitorrent.exception.ResourceAlreadyPresentException;
 import cz.voho.shitorrent.exception.ResourceNotFoundException;
 import cz.voho.shitorrent.model.external.InfoForLeechingCrate;
 import cz.voho.shitorrent.model.external.InfoForSeedingCrate;
+import cz.voho.shitorrent.model.external.PeerCrate;
+import cz.voho.shitorrent.model.internal.Configuration;
 import cz.voho.shitorrent.model.internal.Resource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -37,6 +40,8 @@ public class ResourceManagementService {
     private final Map<String, Resource> resourceByKey;
     private final Object resourcesLock;
     @Autowired
+    private Configuration configuration;
+    @Autowired
     private BasicInputOutputService basicInputOutputService;
 
     public ResourceManagementService() {
@@ -44,11 +49,12 @@ public class ResourceManagementService {
         resourcesLock = new Object();
     }
 
-    public List<Resource> getAllResource() {
+    public List<Resource> getInitializedResources() {
         synchronized (resourcesLock) {
             return resourceByKey
                     .values()
                     .stream()
+                    .filter(Resource::isInitialized)
                     .collect(Collectors.toList());
         }
     }
@@ -101,7 +107,7 @@ public class ResourceManagementService {
         }
     }
 
-    public Resource newSeedResource(final InfoForSeedingCrate infoForSeeding) throws CannotSeedException {
+    public Resource newSeedResource(final InfoForSeedingCrate infoForSeeding) throws CannotSeedException, ResourceAlreadyPresentException {
         final Path sourcePath;
 
         try {
@@ -120,20 +126,33 @@ public class ResourceManagementService {
 
         synchronized (resourcesLock) {
             final String key = generateHash(sourcePath);
-            final Resource resource = new Resource(key);
-            resource.initializeForSeeding(sourcePath, getTotalSize(sourcePath));
-            resourceByKey.put(key, resource);
-            return resource;
+
+            if (!resourceByKey.containsKey(key)) {
+                final PeerCrate localPeer = configuration.getLocalPeer();
+                final Resource resource = new Resource(key, localPeer);
+                resource.initializeForSeeding(sourcePath, getTotalSize(sourcePath));
+                resource.updateSeederFullyAvailable(localPeer);
+                resourceByKey.put(key, resource);
+                return resource;
+            } else {
+                throw new ResourceAlreadyPresentException(key);
+            }
         }
     }
 
-    public Resource newLeechResource(final InfoForLeechingCrate infoForLeeching) throws CannotLeechException {
+    public Resource newLeechResource(final InfoForLeechingCrate infoForLeeching) throws CannotLeechException, ResourceAlreadyPresentException {
         synchronized (resourcesLock) {
             final String key = infoForLeeching.getResourceKey();
-            final Resource resource = new Resource(key);
-            resource.initializeForLeeching(infoForLeeching.getSeeders());
-            resourceByKey.put(key, resource);
-            return resource;
+
+            if (!resourceByKey.containsKey(key)) {
+                final PeerCrate localPeer = configuration.getLocalPeer();
+                final Resource resource = new Resource(key, localPeer);
+                resource.initializeForLeeching(infoForLeeching.getSeeders());
+                resourceByKey.put(key, resource);
+                return resource;
+            } else {
+                throw new ResourceAlreadyPresentException(key);
+            }
         }
     }
 

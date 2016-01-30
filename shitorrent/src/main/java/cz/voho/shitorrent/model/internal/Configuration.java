@@ -38,10 +38,7 @@ public class Configuration {
     }
 
     public PeerCrate getLocalPeer() {
-        PeerCrate result = new PeerCrate();
-        result.setHost(localHost);
-        result.setPort(localPort);
-        return result;
+        return new PeerCrate(localHost, localPort);
     }
 
     public int getMaxNumberOfConcurrentDownloads() {

@@ -21,4 +21,14 @@ public interface Worker extends Runnable {
             // ignore
         }
     }
+
+    default void sleepForResourceChange() {
+        sleep(5000);
+    }
+
+    default void sleepForSwarmChange() {
+        sleep(3000);
+    }
+
+    void stop();
 }

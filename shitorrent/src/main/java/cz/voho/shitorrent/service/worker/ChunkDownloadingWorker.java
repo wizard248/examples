@@ -14,6 +14,7 @@ import org.slf4j.LoggerFactory;
 import java.nio.file.Path;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * Created by vojta on 20/01/16.
@@ -25,6 +26,7 @@ public class ChunkDownloadingWorker implements Worker {
     private final ResourceManagementService resourceManagementService;
     private final OtherPeerClientService otherPeerClientService;
     private final BasicInputOutputService basicInputOutputService;
+    private final AtomicBoolean live = new AtomicBoolean(true);
 
     public ChunkDownloadingWorker(final Configuration configuration, final ResourceManagementService resourceManagementService, final OtherPeerClientService otherPeerClientService, final BasicInputOutputService basicInputOutputService) {
         this.configuration = configuration;
@@ -35,12 +37,12 @@ public class ChunkDownloadingWorker implements Worker {
 
     @Override
     public void run() {
-        while (true) {
+        while (live.get()) {
             final Optional<Resource> unfinishedResource = selectUnfinishedInitializedResource();
 
             if (!unfinishedResource.isPresent()) {
                 log.warn("No unfinished resource.");
-                sleepALittle();
+                sleepForResourceChange();
                 continue;
             }
 
@@ -48,7 +50,7 @@ public class ChunkDownloadingWorker implements Worker {
 
             if (!unfinishedChunkIndex.isPresent()) {
                 log.warn("No unfinished chunk.");
-                sleepALittle();
+                sleepForResourceChange();
                 continue;
             }
 
@@ -56,21 +58,17 @@ public class ChunkDownloadingWorker implements Worker {
 
             if (!feasiblePeer.isPresent()) {
                 log.warn("No feasible peer.");
-                sleepALittle();
+                sleepForSwarmChange();
                 continue;
             }
 
             try {
-                unfinishedResource.get().markChunkDownloading(unfinishedChunkIndex.get());
                 downloadChunk(unfinishedResource.get(), unfinishedChunkIndex.get(), feasiblePeer.get());
                 unfinishedResource.get().markChunkAvailable(unfinishedChunkIndex.get());
-            } catch (final NoPeerConnectionException e) {
-                log.warn("Error while downloading chunk.", e);
-                otherPeerClientService.markPeerAsNonResponsive(feasiblePeer.get());
             } catch (final ErrorWritingChunkException e) {
                 log.warn("Error while writing chunk.", e);
             } finally {
-                unfinishedResource.get().markChunkNotDownloading(unfinishedChunkIndex.get());
+                unfinishedResource.get().markChunkAsNotDownloading(unfinishedChunkIndex.get());
             }
         }
     }
@@ -80,7 +78,7 @@ public class ChunkDownloadingWorker implements Worker {
     }
 
     private Optional<Integer> selectUnfinishedChunk(final Resource resource) {
-        return resource.selectUnfinishedChunk();
+        return resource.reserveUnavailableChunkForDownloading();
     }
 
     private Optional<PeerCrate> selectFeasiblePeer(final Resource resource, final int chunkIndex) {
@@ -91,14 +89,17 @@ public class ChunkDownloadingWorker implements Worker {
     private void downloadChunk(final Resource resource, final int chunkIndex, final PeerCrate sourcePeer) throws ErrorWritingChunkException {
         log.info("Starting download of chunk {} of {} from {}...", chunkIndex, resource.getKey(), sourcePeer);
 
-        final ChunkCrate chunk = otherPeerClientService.downloadChunk(sourcePeer, resource.getKey(), chunkIndex);
-        final Path targetPath = resource.getBackingFile();
-        basicInputOutputService.writeBinaryChunk(targetPath, resource.getFileSize(), chunkIndex, resource.getChunkSize(), chunk.getData());
+        final Optional<ChunkCrate> chunk = otherPeerClientService.downloadChunk(sourcePeer, resource.getKey(), chunkIndex);
 
-        log.info("Chunk {} of {} was downloaded from {}.", chunkIndex, resource.getKey(), sourcePeer);
+        if (chunk.isPresent()) {
+            final Path targetPath = resource.getBackingFile();
+            basicInputOutputService.writeBinaryChunk(targetPath, resource.getFileSize(), chunkIndex, resource.getChunkSize(), chunk.get().getData());
+            log.info("Chunk {} of {} was downloaded from {}.", chunkIndex, resource.getKey(), sourcePeer);
+        }
     }
 
-    private void sleepALittle() {
-        sleep(3000);
+    @Override
+    public void stop() {
+        live.set(false);
     }
 }

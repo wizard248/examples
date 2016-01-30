@@ -16,16 +16,15 @@ public class Launcher {
     private static int port = 7890;
 
     public static void main(String[] args) {
-        for (int i = 0; i < 2; i++) {
+        for (int i = 0; i < 3; i++) {
             SpringApplication.run(Launcher.class, args);
-            port++;
         }
     }
 
     @Bean
     public Configuration configurationCustomizer() {
         Configuration configuration = new Configuration();
-        configuration.setLocalPort(port);
+        configuration.setLocalPort(port++);
         return configuration;
     }
 
