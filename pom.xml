@@ -20,6 +20,7 @@
         <module>lzw</module>
         <module>patterns</module>
         <module>libraries</module>
+        <module>bitap</module>
     </modules>
 
     <repositories>
@@ -72,7 +73,7 @@
             <plugin>
                 <groupId>org.jacoco</groupId>
                 <artifactId>jacoco-maven-plugin</artifactId>
-                <version>0.7.5.201505241946</version>
+                <version>0.7.7.201606060606</version>
                 <executions>
                     <execution>
                         <goals>
