@@ -4,7 +4,7 @@ public class Bitap {
     public int find(char[] text, char[] pattern) {
         int m = pattern.length;
 
-        if (m < 1 || m > 63) {
+        if (m < 1 || m >= Long.SIZE) {
             throw new IllegalArgumentException("Pattern has to be 1-63 characters long.");
         }
 
@@ -26,8 +26,8 @@ public class Bitap {
 
         // = 1...1110
         long R = ~1;
-        // = 1...0000
-        long lastPatternBit = 1L << m;
+        // = 000...1...000
+        long z = 1L << m;
 
         for (int iText = 0; iText < text.length; ++iText) {
             // logický součet (OR)
@@ -35,7 +35,7 @@ public class Bitap {
             // bitový posun vlevo
             R <<= 1;
 
-            if ((R & lastPatternBit) == 0) {
+            if ((R & z) == 0) {
                 // nalezeno
                 return iText - m + 1;
             }
