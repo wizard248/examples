@@ -1,95 +1,69 @@
 package ds.trie;
 
-import org.junit.Before;
 import org.junit.Test;
 
-import java.util.Arrays;
-import java.util.List;
-
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
 public class TrieTest {
-    private Trie<String> toTest;
-
-    @Before
-    public void setUp() {
-        toTest = new GenericTrie<>();
-    }
+    private final Trie toTest = new GenericTrie();
 
     @Test
     public void testEmptyTrie() {
-        assertNoValue("");
-        assertNoValue("XXX");
+        assertTrue(toTest.containsPrefix(""));
+        assertFalse(toTest.containsWord("a"));
+        assertFalse(toTest.containsPrefix("a"));
+        assertEquals(0, toTest.numWords());
+        assertEquals(1, toTest.numPrefixes());
     }
 
     @Test
-    public void testSingleNodeTrie() {
-        putToTrie("a");
-
-        assertNoValue("");
-        assertNoValue("XXX");
-        assertCorrectValue("a");
-    }
-
-    @Test
-    public void testSingleLevelTrie() {
-        List<String> values = Arrays.asList("a", "b", "c", "d", "e");
-
-        putToTrie(values);
-
-        assertNoValue("");
-        assertNoValue("XXX");
-        assertCorrectValue(values);
+    public void testTrivialTrie() {
+        toTest.addWord("a");
+        assertTrue(toTest.containsWord("a"));
+        assertTrue(toTest.containsPrefix("a"));
+        assertEquals(1, toTest.numWords());
+        assertEquals(2, toTest.numPrefixes());
     }
 
     @Test
     public void testSnailTrie() {
-        List<String> values = Arrays.asList("a", "ab", "abc", "abcd", "abcde");
-
-        putToTrie(values);
-
-        assertNoValue("");
-        assertNoValue("XXX");
-        assertCorrectValue(values);
+        toTest.addWord("a");
+        toTest.addWord("ab");
+        toTest.addWord("abc");
+        assertTrue(toTest.containsWord("a"));
+        assertTrue(toTest.containsWord("ab"));
+        assertTrue(toTest.containsWord("abc"));
+        assertTrue(toTest.containsPrefix("a"));
+        assertTrue(toTest.containsPrefix("ab"));
+        assertTrue(toTest.containsPrefix("abc"));
+        assertEquals(3, toTest.numWords());
+        assertEquals(4, toTest.numPrefixes());
     }
 
     @Test
     public void testNormalTrie() {
-        List<String> values = Arrays.asList(
-                "hello", "world", "how", "are", "you", "i", "am", "fine", "thank", "you", "what", "the", "hell"
-        );
-
-        putToTrie(values);
-
-        assertNoValue("");
-        assertNoValue("XXX");
-        assertCorrectValue(values);
-    }
-
-    private void putToTrie(String key) {
-        toTest.put(key.toCharArray(), deriveValueForKey(key));
-    }
-
-    private void putToTrie(Iterable<String> keys) {
-        keys.forEach(this::putToTrie);
-    }
-
-    private void assertNoValue(String key) {
-        assertNull(toTest.get(key.toCharArray()));
-    }
-
-    private void assertCorrectValue(Iterable<String> keys) {
-        keys.forEach(this::assertCorrectValue);
-    }
-
-    private void assertCorrectValue(String key) {
-        assertNotNull(toTest.get(key.toCharArray()));
-        assertEquals(deriveValueForKey(key), toTest.get(key.toCharArray()));
-    }
-
-    private String deriveValueForKey(String key) {
-        return String.format("value_for_%s", key);
+        toTest.addWord("hello");
+        toTest.addWord("hell");
+        toTest.addWord("halo");
+        assertTrue(toTest.containsWord("hello"));
+        assertTrue(toTest.containsWord("hell"));
+        assertTrue(toTest.containsWord("halo"));
+        assertTrue(toTest.containsPrefix("h"));
+        assertTrue(toTest.containsPrefix("he"));
+        assertTrue(toTest.containsPrefix("hel"));
+        assertTrue(toTest.containsPrefix("hell"));
+        assertTrue(toTest.containsPrefix("hello"));
+        assertTrue(toTest.containsPrefix("ha"));
+        assertTrue(toTest.containsPrefix("hal"));
+        assertTrue(toTest.containsPrefix("halo"));
+        assertFalse(toTest.containsWord("h"));
+        assertFalse(toTest.containsWord("he"));
+        assertFalse(toTest.containsWord("hel"));
+        assertFalse(toTest.containsWord("ha"));
+        assertFalse(toTest.containsWord("hal"));
+        assertEquals(3, toTest.numWords());
+        assertEquals(9, toTest.numPrefixes());
     }
 }
