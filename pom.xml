@@ -35,7 +35,7 @@
             <dependency>
                 <groupId>com.github.voho</groupId>
                 <artifactId>grafo</artifactId>
-                <version>0.9</version>
+                <version>0.91</version>
             </dependency>
             <dependency>
                 <groupId>com.google.guava</groupId>
