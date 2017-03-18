@@ -18,6 +18,7 @@
         <module>lz77</module>
         <module>lz78</module>
         <module>lzw</module>
+        <module>zip</module>
         <module>patterns</module>
         <module>libraries</module>
         <module>bitap</module>
