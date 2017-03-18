@@ -16,7 +16,6 @@
 
     <modules>
         <module>spring-jdbc-example</module>
-        <module>barcodes</module>
     </modules>
 
 </project>
