@@ -22,6 +22,7 @@
         <module>patterns</module>
         <module>libraries</module>
         <module>bitap</module>
+        <module>random</module>
     </modules>
 
     <repositories>
