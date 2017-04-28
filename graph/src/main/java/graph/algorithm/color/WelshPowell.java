@@ -3,7 +3,13 @@ package graph.algorithm.color;
 
 import cz.voho.grafo.UndirectedGraph;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
@@ -12,7 +18,6 @@ import java.util.stream.Collectors;
 public final class WelshPowell {
     /**
      * Calculate the upper-bound approximate of graph color number.
-     *
      * @param graph given graph
      * @return map of node to its color index (starting from 0)
      */

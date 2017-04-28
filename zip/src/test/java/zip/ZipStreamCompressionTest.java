@@ -11,29 +11,31 @@ import java.nio.file.Path;
 import java.util.LinkedList;
 import java.util.List;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertArrayEquals;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 public class ZipStreamCompressionTest {
     @Rule
     public TemporaryFolder temporaryFolder = new TemporaryFolder();
 
-    private ZipStreamCompression toTest = new ZipStreamCompression();
+    private final ZipStreamCompression toTest = new ZipStreamCompression();
 
     @Test
     public void testEndToEnd() throws IOException {
-        List<Path> filesToCompress = new LinkedList<>();
+        final List<Path> filesToCompress = new LinkedList<>();
         filesToCompress.add(createTemporaryFile("file_1.txt", "Contents of file 1"));
         filesToCompress.add(createTemporaryFile("file_2.txt", "Contents of file 2"));
         filesToCompress.add(createTemporaryFile("file_3.txt", "Contents of file 3"));
 
-        Path result = temporaryFolder.newFile("result.zip").toPath();
+        final Path result = temporaryFolder.newFile("result.zip").toPath();
 
         // COMPRESS
         toTest.compressFiles(filesToCompress, result);
 
         assertTrue(Files.exists(result));
 
-        Path extractedDirectory = temporaryFolder.newFolder("extracted").toPath();
+        final Path extractedDirectory = temporaryFolder.newFolder("extracted").toPath();
 
         // DECOMPRESS
         toTest.decompressFiles(result, extractedDirectory);
@@ -41,13 +43,13 @@ public class ZipStreamCompressionTest {
         assertTrue(Files.exists(extractedDirectory));
         assertTrue(Files.isDirectory(extractedDirectory));
 
-        Path[] extractedFiles = Files.list(extractedDirectory).toArray(Path[]::new);
+        final Path[] extractedFiles = Files.list(extractedDirectory).toArray(Path[]::new);
 
         assertEquals(filesToCompress.size(), extractedFiles.length);
 
         for (int i = 0; i < filesToCompress.size(); i++) {
-            Path originalFile = filesToCompress.get(i);
-            Path actualFile = extractedFiles[i];
+            final Path originalFile = filesToCompress.get(i);
+            final Path actualFile = extractedFiles[i];
 
             // same name
             assertEquals(originalFile.getFileName(), actualFile.getFileName());
@@ -58,8 +60,8 @@ public class ZipStreamCompressionTest {
         }
     }
 
-    private Path createTemporaryFile(String fileName, String fileContents) throws IOException {
-        Path path = temporaryFolder.newFile(fileName).toPath();
+    private Path createTemporaryFile(final String fileName, final String fileContents) throws IOException {
+        final Path path = temporaryFolder.newFile(fileName).toPath();
         Files.write(path, fileContents.getBytes(StandardCharsets.UTF_8));
         return path;
     }

@@ -9,12 +9,14 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Random;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
 public class SkipListTest {
     private static final Logger log = LoggerFactory.getLogger(SkipListTest.class);
     private static final Random RANDOM = new SecureRandom();
-    private final static List<Integer> SIZES = Arrays.asList(1, 3, 5, 6, 10, 100);
+    private static final List<Integer> SIZES = Arrays.asList(1, 3, 5, 6, 10, 100);
 
     @Test
     public void testDecreasing() {

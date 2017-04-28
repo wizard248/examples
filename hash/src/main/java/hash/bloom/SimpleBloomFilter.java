@@ -22,7 +22,6 @@ public class SimpleBloomFilter<T> implements BloomFilter<T> {
 
     /**
      * Creates a new instance.
-     *
      * @param numBits number of bits (size of bit set)
      * @param hashFunctions hash functions to be used
      */
@@ -73,7 +72,6 @@ public class SimpleBloomFilter<T> implements BloomFilter<T> {
 
     /**
      * Transforms hash into a safe array index. Prevents overflow and negative numbers.
-     *
      * @param hashValue hash value (any)
      * @return safe index into the bit set
      */

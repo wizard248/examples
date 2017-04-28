@@ -8,7 +8,6 @@ import java.util.Map;
 
 /**
  * Kompresní algoritmus LZW.
- *
  * @author Vojtěch Hordějčuk
  */
 public final class LZW {
@@ -16,7 +15,6 @@ public final class LZW {
 
     /**
      * Získá abecedu (seznam symbolů) ze vstupního řetězce.
-     *
      * @param input vstupní řetězec
      * @return abeceda vstupního řetězce
      */
@@ -36,7 +34,6 @@ public final class LZW {
 
     /**
      * Zakomprimuje vstupní řetězec algoritmem LZW.
-     *
      * @param alphabet abeceda vstupních symbolů
      * @param input vstupní řetězec
      * @return výstupní posloupnost kódových slov
@@ -129,7 +126,6 @@ public final class LZW {
 
     /**
      * Dekomprimuje posloupnost kódových slov algoritmu LZW.
-     *
      * @param alphabet abeceda vstupních symbolů
      * @param codewords vstupní posloupnost kódových slov
      * @return dekomprimovaný řetězec
@@ -172,7 +168,6 @@ public final class LZW {
     /**
      * Vrátí znak na zadané pozici.
      * Pokud je pozice mimo rozsah, vrátí prázdný řetězec ("").
-     *
      * @param input vstupní řetězec
      * @param index pozice (index)
      * @return znak na zadané pozici vstupního řetězce, nebo prázdný řetězec
@@ -187,7 +182,6 @@ public final class LZW {
 
     /**
      * Uzel slovníku, představující jedno slovo.
-     *
      * @author Vojtěch Hordějčuk
      */
     private static class Node {
@@ -210,7 +204,6 @@ public final class LZW {
 
         /**
          * Vrátí uzel ve kterém končí daný prefix, nebo NULL.
-         *
          * @param prefix hledaný prefix
          * @return uzel ve kterém končí daný prefix, nebo NULL
          */
@@ -236,7 +229,6 @@ public final class LZW {
 
         /**
          * Rozšíří uzel slovníku o nového potomka a spojí jej zadanou hranou.
-         *
          * @param terminal symbol pro danou hranu
          * @param counter node counter value
          */
@@ -246,7 +238,6 @@ public final class LZW {
 
         /**
          * Vrátí unikátní index daného uzlu.
-         *
          * @return ID uzlu
          */
         public int getIndex() {

@@ -3,7 +3,12 @@ package graph.algorithm.traversal;
 import com.google.common.base.Preconditions;
 import cz.voho.grafo.Graph;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Queue;
+import java.util.Set;
 
 /**
  * Implementation of breadth-first traversal algorithm.
@@ -11,7 +16,6 @@ import java.util.*;
 public final class Bfs {
     /**
      * Performs a BFS walk starting from the given node.
-     *
      * @param graph graph to walk
      * @param startingNode node to start walking from (must be in the given graph)
      * @return list of nodes in order they were visited

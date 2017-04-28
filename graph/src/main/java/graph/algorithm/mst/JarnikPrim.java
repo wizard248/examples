@@ -1,6 +1,10 @@
 package graph.algorithm.mst;
 
-import cz.voho.grafo.*;
+import cz.voho.grafo.Graph;
+import cz.voho.grafo.MutableUndirectedGraph;
+import cz.voho.grafo.UndirectedGraph;
+import cz.voho.grafo.UnorderedPair;
+import cz.voho.grafo.WeightedEdge;
 
 import java.util.Comparator;
 import java.util.Optional;
@@ -11,7 +15,6 @@ import java.util.Optional;
 public final class JarnikPrim {
     /**
      * Finds the minimum spanning tree of the given graph.
-     *
      * @param originalGraph original graph
      * @return minimum spanning tree
      */

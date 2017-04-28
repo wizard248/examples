@@ -8,7 +8,6 @@ import java.util.Optional;
 public interface SkipList<K extends Comparable<? super K>, V> {
     /**
      * Gets a value by its key.
-     *
      * @param key key to search for
      * @return value found (or nothing)
      */
@@ -16,7 +15,6 @@ public interface SkipList<K extends Comparable<? super K>, V> {
 
     /**
      * Checks if there is a mapping for the specified key.
-     *
      * @param key key to search for
      * @return TRUE if there is a mapping for that key, FALSE otherwise
      */
@@ -27,7 +25,6 @@ public interface SkipList<K extends Comparable<? super K>, V> {
     /**
      * Saves a value under the given key.
      * Could a value already exists for the given key, it would be overwritten.
-     *
      * @param key key
      * @param value value
      */
@@ -35,7 +32,6 @@ public interface SkipList<K extends Comparable<? super K>, V> {
 
     /**
      * Removes the value stored for the given key.
-     *
      * @param key key
      * @return TRUE if the key was found and value removed, FALSE if nothing was found
      */

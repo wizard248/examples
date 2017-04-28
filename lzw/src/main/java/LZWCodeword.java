@@ -1,6 +1,5 @@
 /**
  * Kódové slovo kompresního algoritmu LZW.
- *
  * @author Vojtěch Hordějčuk
  */
 public class LZWCodeword {
@@ -8,7 +7,6 @@ public class LZWCodeword {
 
     /**
      * Vytvoří nové kódové slovo.
-     *
      * @param index index uzlu
      */
     public LZWCodeword(final int index) {
@@ -19,7 +17,6 @@ public class LZWCodeword {
 
     /**
      * Vrátí index uzlu.
-     *
      * @return index uzlu
      */
     public int getIndex() {

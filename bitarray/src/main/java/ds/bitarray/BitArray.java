@@ -6,14 +6,12 @@ package ds.bitarray;
 public interface BitArray {
     /**
      * Returns the number of bits which can be stored in this array.
-     *
      * @return number of bits stored in this array
      */
     int size();
 
     /**
      * Checks if the bit on the given index is set (equal to 1).
-     *
      * @param index bit index (0 to size - 1, inclusive)
      * @return TRUE if the bit is set, FALSE otherwise
      */
@@ -21,14 +19,12 @@ public interface BitArray {
 
     /**
      * Sets the bit on the given index to 1.
-     *
      * @param index bit index (0 to size - 1, inclusive)
      */
     void set(int index);
 
     /**
      * Unsets the bit on the given index to 0.
-     *
      * @param index bit index (0 to size - 1, inclusive)
      */
     void unset(int index);

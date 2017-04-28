@@ -11,7 +11,6 @@ public interface BloomFilter<T> {
 
     /**
      * Returns the optimal number of hash functions (approximate).
-     *
      * @param numBits number of bits
      * @param numElements number of elements expected
      * @return number of hash functions
@@ -26,7 +25,6 @@ public interface BloomFilter<T> {
 
     /**
      * Returns the optimal number of bits (approximate).
-     *
      * @param numElements number of elements expected
      * @param wantedFalsePositiveProbability wanted probability of false positives
      * @return number of bits
@@ -43,7 +41,6 @@ public interface BloomFilter<T> {
      * Checks if the element is in the set.
      * WARNING: sometimes can return false positive - TRUE for an element which is NOT in the set.
      * On the other hand, there are no negative positives - the FALSE value is always correct.
-     *
      * @param element element to find
      * @return TRUE if the element is probably in the set, FALSE otherwise
      */
@@ -51,14 +48,12 @@ public interface BloomFilter<T> {
 
     /**
      * Adds an element into the set.
-     *
      * @param element element to add
      */
     void add(T element);
 
     /**
      * Returns the expected false positive probability.
-     *
      * @return false positive probability
      */
     default double expectedFalsePositiveProbability() {
@@ -67,21 +62,18 @@ public interface BloomFilter<T> {
 
     /**
      * Returns the number of active bits (number of bits which are 1).
-     *
      * @return number of bits
      */
     int getNumberOfActiveBits();
 
     /**
      * Returns the total number of available bits.
-     *
      * @return number of bits
      */
     int getNumberOfBits();
 
     /**
      * Returns the hash function count.
-     *
      * @return hash function count
      */
     int getNumberOfHashFunctions();

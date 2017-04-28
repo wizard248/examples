@@ -125,7 +125,6 @@ public class DefaultSkipList<K extends Comparable<? super K>, V> implements Skip
      * <li>levels in range - the closest element preceding the key looked up is stored</li>
      * </ul>
      * This array of predecessors can be used to simplify other operations.
-     *
      * @param key key to lookup
      * @param closestPredecessorsTarget array of predecessors to update (must be of sufficient length)
      * @return best candidate found or NULL
