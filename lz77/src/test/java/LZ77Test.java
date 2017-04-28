@@ -1,14 +1,12 @@
-import static org.junit.Assert.assertEquals;
+import org.junit.Test;
 
 import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.stream.IntStream;
 
-import org.junit.Ignore;
-import org.junit.Test;
+import static org.junit.Assert.assertEquals;
 
-@Ignore // TODO no time to fix now :(
 public class LZ77Test {
     private final List<Integer> sizesBack = Arrays.asList(1, 5, 10, 100, 1000);
     private final List<Integer> sizesFront = Arrays.asList(1, 3, 10, 80, 500, 1100);
