@@ -12,7 +12,7 @@ public class Levenshtein {
     public static int distanceWagnerFischerOptimized(final char[] s, final char[] t) {
         if (t.length > s.length) {
             // to save memory, we want the shorter string to be the second parameter
-            // (in this case, the distance is symmetrical)
+            // (as long as the distance is symmetrical, we do not care about the order)
             return distanceWagnerFischerOptimized(t, s);
         }
 
