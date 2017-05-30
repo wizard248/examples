@@ -10,6 +10,12 @@ public class Levenshtein {
      * @see https://en.wikipedia.org/wiki/Wagner%E2%80%93Fischer_algorithm
      */
     public static int distanceWagnerFischerOptimized(final char[] s, final char[] t) {
+        if (t.length > s.length) {
+            // to save memory, we want the shorter string to be the second parameter
+            // (in this case, the distance is symmetrical)
+            return distanceWagnerFischerOptimized(t, s);
+        }
+
         int[] previousRow = new int[t.length + 1];
         int[] currentRow = new int[t.length + 1];
 
