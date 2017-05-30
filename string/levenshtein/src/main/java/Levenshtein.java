@@ -10,45 +10,37 @@ public class Levenshtein {
      * @see https://en.wikipedia.org/wiki/Wagner%E2%80%93Fischer_algorithm
      */
     public static int distanceWagnerFischerOptimized(final char[] s, final char[] t) {
-        // to save memory for the arrays, we prefer having shorter string in columns
-        final char[] wordInRows = s.length < t.length ? s : t;
-        final char[] wordInColumns = s.length < t.length ? t : s;
-
-        int[] previousRow = new int[wordInRows.length + 1];
-        int[] currentRow = new int[wordInRows.length + 1];
+        int[] previousRow = new int[t.length + 1];
+        int[] currentRow = new int[t.length + 1];
 
         for (int i = 0; i < previousRow.length; i++) {
             // 0, 1, 2, 3, 4, 5...
             previousRow[i] = i;
         }
 
-        for (int i = 0; i < wordInColumns.length; i++) {
-            currentRow[0] = i + 1;
+        for (int is = 1; is <= s.length; is++) {
+            currentRow[0] = is;
 
-            for (int j = 0; j < wordInRows.length; j++) {
-                if (wordInColumns[i] == wordInRows[j]) {
-                    // no change
-                    currentRow[j + 1] = previousRow[j];
-                } else {
-                    currentRow[j + 1] = min(
-                            // insertion
-                            currentRow[j] + 1,
-                            // removal
-                            previousRow[j + 1] + 1,
-                            // substitution (if the character is different)
-                            previousRow[j] + 1
-                    );
-                }
+            for (int it = 1; it <= t.length; it++) {
+                // up = deletion
+                final int costDeletion = previousRow[it] + 1;
+                // left = insertion
+                final int costInsertion = currentRow[it - 1] + 1;
+                // cost for replacing the character in case it is different
+                final int costReplacement = (s[is - 1] == t[it - 1]) ? 0 : 1;
+                // diagonal = substitution (if necessary)
+                final int costSubstitution = previousRow[it - 1] + costReplacement;
+
+                currentRow[it] = min(costDeletion, costInsertion, costSubstitution);
             }
 
-            // swap rows
-
-            final int[] tempRow = previousRow;
+            // swap arrays (currentRow will be re-used and overwritten)
+            final int[] temp = previousRow;
             previousRow = currentRow;
-            currentRow = tempRow;
+            currentRow = temp;
         }
 
-        return previousRow[wordInRows.length];
+        return previousRow[t.length];
     }
 
     /**
@@ -60,31 +52,38 @@ public class Levenshtein {
      * @see https://en.wikipedia.org/wiki/Wagner%E2%80%93Fischer_algorithm
      */
     public static int distanceWagnerFischer(final char[] s, final char[] t) {
+        if (s.length == 0) {
+            // edge case: S is empty
+            return t.length;
+        } else if (t.length == 0) {
+            // edge case: T is empty
+            return s.length;
+        }
+
         final int[][] d = new int[s.length + 1][t.length + 1];
 
         for (int i = 0; i <= s.length; i++) {
+            // reset first row
             d[i][0] = i;
         }
 
         for (int i = 0; i <= t.length; i++) {
+            // reset first column
             d[0][i] = i;
         }
 
         for (int it = 1; it <= t.length; it++) {
             for (int is = 1; is <= s.length; is++) {
-                if (s[is - 1] == t[it - 1]) {
-                    // no change
-                    d[is][it] = d[is - 1][it - 1];
-                } else {
-                    d[is][it] = min(
-                            // deletion
-                            d[is - 1][it] + 1,
-                            // insertion
-                            d[is][it - 1] + 1,
-                            // substitution
-                            d[is - 1][it - 1] + 1
-                    );
-                }
+                // up = deletion
+                final int costDeletion = d[is - 1][it] + 1;
+                // left = insertion
+                final int costInsertion = d[is][it - 1] + 1;
+                // cost for replacing the character in case it is different
+                final int costReplacement = (s[is - 1] == t[it - 1]) ? 0 : 1;
+                // diagonal = substitution (if necessary)
+                final int costSubstitution = d[is - 1][it - 1] + costReplacement;
+
+                d[is][it] = min(costDeletion, costInsertion, costSubstitution);
             }
         }
 
