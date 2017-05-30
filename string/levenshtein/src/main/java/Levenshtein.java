@@ -26,16 +26,19 @@ public class Levenshtein {
             currentRow[0] = i + 1;
 
             for (int j = 0; j < wordInRows.length; j++) {
-                final int cost = (wordInColumns[i] == wordInRows[j]) ? 0 : 1;
-
-                currentRow[j + 1] = min(
-                        // insertion
-                        currentRow[j] + 1,
-                        // removal
-                        previousRow[j + 1] + 1,
-                        // substitution (if the character is different)
-                        previousRow[j] + cost
-                );
+                if (wordInColumns[i] == wordInRows[j]) {
+                    // no change
+                    currentRow[j + 1] = previousRow[j];
+                } else {
+                    currentRow[j + 1] = min(
+                            // insertion
+                            currentRow[j] + 1,
+                            // removal
+                            previousRow[j + 1] + 1,
+                            // substitution (if the character is different)
+                            previousRow[j] + 1
+                    );
+                }
             }
 
             // swap rows
@@ -43,7 +46,6 @@ public class Levenshtein {
             final int[] tempRow = previousRow;
             previousRow = currentRow;
             currentRow = tempRow;
-            System.out.println(Arrays.toString(currentRow));
         }
 
         return previousRow[wordInRows.length];
@@ -58,10 +60,6 @@ public class Levenshtein {
      * @see https://en.wikipedia.org/wiki/Wagner%E2%80%93Fischer_algorithm
      */
     public static int distanceWagnerFischer(final char[] s, final char[] t) {
-        // wagner-fischer algorithm only needs to store two rows at once
-        // for all i, j:
-        // d[i, j] will hold the Levenshtein distance between the first i characters of s and first j characters of t
-
         final int[][] d = new int[s.length + 1][t.length + 1];
 
         for (int i = 0; i <= s.length; i++) {
@@ -74,11 +72,8 @@ public class Levenshtein {
 
         for (int it = 1; it <= t.length; it++) {
             for (int is = 1; is <= s.length; is++) {
-                final char sis = s[is - 1];
-                final char tit = t[it - 1];
-
-                if (sis == tit) {
-                    // diagonal move: no operation required
+                if (s[is - 1] == t[it - 1]) {
+                    // no change
                     d[is][it] = d[is - 1][it - 1];
                 } else {
                     d[is][it] = min(
