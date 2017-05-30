@@ -5,15 +5,15 @@ public class Canvas {
         this.drawer = drawer;
     }
 
-    public void drawLine(int x1, int y1, int x2, int y2) {
+    public void drawLine(final int x1, final int y1, final int x2, final int y2) {
         this.drawer.drawLine(x1, y1, x2, y2);
     }
 
-    public void drawCircle(int cx, int cy, int r) {
+    public void drawCircle(final int cx, final int cy, final int r) {
         this.drawer.drawCircle(cx, cy, r);
     }
 
-    public void drawRectangle(int x, int y, int w, int h) {
+    public void drawRectangle(final int x, final int y, final int w, final int h) {
         this.drawer.drawLine(x, y, x + w, y); // top 
         this.drawer.drawLine(x, y, x, y + h); // left 
         this.drawer.drawLine(x, y + h, x + w, y + h); // bottom 

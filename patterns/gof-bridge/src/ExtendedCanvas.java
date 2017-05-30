@@ -3,12 +3,12 @@ public class ExtendedCanvas extends Canvas {
         super(drawer);
     }
 
-    public void drawDoubleCircle(int cx, int cy, int r1, int r2) {
+    public void drawDoubleCircle(final int cx, final int cy, final int r1, final int r2) {
         drawCircle(cx, cy, r1);
         drawCircle(cx, cy, r2);
     }
 
-    public void drawCircledSquare(int cx, int cy, int r) {
+    public void drawCircledSquare(final int cx, final int cy, final int r) {
         final int a = Math.round(2.0f * (float) (r / Math.sqrt(2.0)));
         final int px = cx - a / 2;
         final int py = cy - a / 2;
@@ -16,7 +16,7 @@ public class ExtendedCanvas extends Canvas {
         drawCircle(cx, cy, r);
     }
 
-    public void drawSquaredCircle(int cx, int cy, int r) {
+    public void drawSquaredCircle(final int cx, final int cy, final int r) {
         final int d = r + r;
         final int px = cx - r;
         final int py = cy - r;

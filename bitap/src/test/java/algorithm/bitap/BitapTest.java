@@ -5,7 +5,7 @@ import org.junit.Test;
 import static org.junit.Assert.assertEquals;
 
 public class BitapTest {
-    private Bitap toTest = new Bitap();
+    private final Bitap toTest = new Bitap();
 
     @Test
     public void test() {

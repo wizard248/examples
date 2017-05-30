@@ -9,9 +9,9 @@ import java.util.Optional;
 public class ReservoirSamplingTest {
     @Test
     public void reservoirSamplingMultipleElements() throws Exception {
-        List<Integer> a = Arrays.asList(0, 1);
+        final List<Integer> a = Arrays.asList(0, 1);
 
-        int[] counts = new int[a.size()];
+        final int[] counts = new int[a.size()];
 
         for (int i = 0; i < 10000000; i++) {
             final List<Integer> rrr = ReservoirSampling.reservoirSampling(a.iterator(), 1);
@@ -23,9 +23,9 @@ public class ReservoirSamplingTest {
 
     @Test
     public void reservoirSamplingSingleElement() throws Exception {
-        List<Integer> a = Arrays.asList(0, 1);
+        final List<Integer> a = Arrays.asList(0, 1);
 
-        int[] counts = new int[a.size()];
+        final int[] counts = new int[a.size()];
 
         for (int i = 0; i < 10000000; i++) {
             final Optional<Integer> rrr = ReservoirSampling.reservoirSampling(a.iterator());

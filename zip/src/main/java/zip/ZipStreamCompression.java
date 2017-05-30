@@ -8,9 +8,9 @@ import java.util.zip.ZipInputStream;
 import java.util.zip.ZipOutputStream;
 
 public class ZipStreamCompression {
-    public void compressFiles(Iterable<Path> filesToCompress, Path outputZipFile) throws IOException {
+    public void compressFiles(final Iterable<Path> filesToCompress, final Path outputZipFile) throws IOException {
         try (ZipOutputStream zipOutputStream = new ZipOutputStream(Files.newOutputStream(outputZipFile))) {
-            for (Path fileToCompress : filesToCompress) {
+            for (final Path fileToCompress : filesToCompress) {
                 // create a new ZIP entry
                 zipOutputStream.putNextEntry(new ZipEntry(fileToCompress.getFileName().toString()));
                 // write file contents into ZIP stream
@@ -24,11 +24,11 @@ public class ZipStreamCompression {
         }
     }
 
-    public void decompressFiles(Path inputZipFile, Path outputDirectory) throws IOException {
+    public void decompressFiles(final Path inputZipFile, final Path outputDirectory) throws IOException {
         try (ZipInputStream zipInputStream = new ZipInputStream(Files.newInputStream(inputZipFile))) {
             while (true) {
                 // reads the next ZIP file entry and positions the stream at the beginning of the entry data
-                ZipEntry nextZipEntry = zipInputStream.getNextEntry();
+                final ZipEntry nextZipEntry = zipInputStream.getNextEntry();
 
                 if (nextZipEntry == null) {
                     // no more entries in the ZIP file
@@ -36,7 +36,7 @@ public class ZipStreamCompression {
                 }
 
                 // create newly extracted file
-                Path extractedFile = outputDirectory.resolve(nextZipEntry.getName());
+                final Path extractedFile = outputDirectory.resolve(nextZipEntry.getName());
                 // extract file
                 Files.copy(zipInputStream, extractedFile);
                 // closes the current ZIP entry and positions the stream for reading the next entry

@@ -24,7 +24,7 @@ public class Library {
                 .usingGeneratedKeyColumns("id");
     }
 
-    public List<Integer> insertMultipleBooks(List<Book> books) {
+    public List<Integer> insertMultipleBooks(final List<Book> books) {
         return transactionTemplate.execute(transactionStatus -> books
                 .stream()
                 .peek(this::insert)
@@ -33,7 +33,7 @@ public class Library {
         );
     }
 
-    public void updateMultipleBooks(List<Book> books) {
+    public void updateMultipleBooks(final List<Book> books) {
         transactionTemplate.execute(transactionStatus -> {
             books.forEach(this::update);
             return null;

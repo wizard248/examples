@@ -1,8 +1,8 @@
 public class Client {
-    public static void main(String[] args) {
+    public static void main(final String[] args) {
         // ((a AND NOT b) OR c)
 
-        LogicalExpression root = new LogicalOrOperator(
+        final LogicalExpression root = new LogicalOrOperator(
                 new LogicalAndOperator(
                         new LogicalVariable("a"),
                         new LogicalNotOperator(
@@ -14,7 +14,7 @@ public class Client {
 
         System.out.println(root);
 
-        Context context = new Context();
+        final Context context = new Context();
         context.setVariableToFalse("a");
         context.setVariableToTrue("b");
         context.setVariableToFalse("c");

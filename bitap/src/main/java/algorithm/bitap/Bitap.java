@@ -1,14 +1,14 @@
 package algorithm.bitap;
 
 public class Bitap {
-    public int find(char[] text, char[] pattern) {
-        int m = pattern.length;
+    public int find(final char[] text, final char[] pattern) {
+        final int m = pattern.length;
 
         if (m < 1 || m >= Long.SIZE) {
             throw new IllegalArgumentException("Pattern has to be 1-63 characters long.");
         }
 
-        long mask[] = new long[Character.MAX_VALUE + 1];
+        final long[] mask = new long[Character.MAX_VALUE + 1];
 
         for (int iMask = 0; iMask < mask.length; iMask++) {
             // ~0 = 111...111
@@ -16,7 +16,7 @@ public class Bitap {
         }
 
         for (int iPattern = 0; iPattern < m; iPattern++) {
-            int iMask = (int) pattern[iPattern];
+            final int iMask = (int) pattern[iPattern];
             // ~(1 << 0) = 1...11111110
             // ~(1 << 1) = 1...11111101
             // ~(1 << 2) = 1...11111011
@@ -27,7 +27,7 @@ public class Bitap {
         // = 1...1110
         long R = ~1;
         // = 000...1...000
-        long z = 1L << m;
+        final long z = 1L << m;
 
         for (int iText = 0; iText < text.length; ++iText) {
             // logický součet (OR)
