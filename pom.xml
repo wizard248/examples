@@ -23,6 +23,7 @@
         <module>libraries</module>
         <module>bitap</module>
         <module>random</module>
+        <module>string</module>
     </modules>
 
     <repositories>
