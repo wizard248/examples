@@ -24,6 +24,7 @@
         <module>bitap</module>
         <module>random</module>
         <module>string</module>
+        <module>concurrency</module>
     </modules>
 
     <repositories>
